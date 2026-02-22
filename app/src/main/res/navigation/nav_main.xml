@@ -16,7 +16,7 @@
 
     <fragment
         android:id="@+id/createPostFragment"
-        android:name="com.dsa.thebigtrip.ProfileFragment"
+        android:name="com.dsa.thebigtrip.Post.CreatePostFragment"
         android:label="Create Post" />
 
     <fragment
