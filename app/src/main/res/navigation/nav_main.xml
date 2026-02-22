@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_main"
+    app:startDestination="@id/profileFragment">
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.dsa.thebigtrip.ProfileFragment"
+        android:label="Profile" />
+
+    <fragment
+        android:id="@+id/myPostsFragment"
+        android:name="com.dsa.thebigtrip.ProfileFragment"
+        android:label="My Posts" />
+
+    <fragment
+        android:id="@+id/createPostFragment"
+        android:name="com.dsa.thebigtrip.ProfileFragment"
+        android:label="Create Post" />
+
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.dsa.thebigtrip.ProfileFragment"
+        android:label="Map" />
+
+</navigation>
