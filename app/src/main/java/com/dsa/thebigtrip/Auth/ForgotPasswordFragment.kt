@@ -70,11 +70,11 @@ class ForgotPasswordFragment : Fragment() {
     private fun sendPasswordReset(email: String) {
         setLoading(true)
 
+
         auth.sendPasswordResetEmail(email)
             .addOnCompleteListener { task ->
                 setLoading(false)
                 if (task.isSuccessful) {
-                    // Show success message
                     binding.layoutSuccess.visibility = View.VISIBLE
                     binding.btnSendReset.text = "Resend Link"
                 } else {

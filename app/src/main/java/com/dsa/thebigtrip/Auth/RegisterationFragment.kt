@@ -16,6 +16,13 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import androidx.core.graphics.toColorInt
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.dsa.thebigtrip.data.user.User
+import com.dsa.thebigtrip.data.user.UserRepository
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class RegisterFragment : Fragment() {
 
@@ -118,60 +125,46 @@ class RegisterFragment : Fragment() {
 
         return isValid
     }
-
     private fun registerUser(name: String, email: String, password: String) {
         setLoading(true)
-        Log.d("TAG", "createUserWithEmail:success name $name email $email pass $password")
 
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnCompleteListener(requireActivity()) { task ->
-                if (task.isSuccessful) {
-                    val user = auth.currentUser
-                    val profileUpdates = UserProfileChangeRequest.Builder()
-                        .setDisplayName(name)
-                        .build()
+        lifecycleScope.launch {
+            try {
+                auth.createUserWithEmailAndPassword(email, password).await()
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(name)
+                    .build()
+                auth.currentUser?.updateProfile(profileUpdates)?.await()
+                val uid = auth.currentUser?.uid ?: return@launch // the @ in the return refers to what scope we are returning so here we want to return for the coroutine and not the whole register user - for future me
+                val user = User(
+                    uid = uid,
+                    fullName = name,
+                    email = email,
+                    imageUri = "bob"
+                )
 
-                    user?.updateProfile(profileUpdates)
-                        ?.addOnCompleteListener { profileTask ->
-                            setLoading(false)
-                            if (profileTask.isSuccessful) {
-                                user.sendEmailVerification().addOnCompleteListener { task ->
-                                    if (task.isSuccessful) {
-                                        Snackbar.make(binding.root, "Account created! Verification email sent.", Snackbar.LENGTH_SHORT)
-                                            .setBackgroundTint("#4CAF50".toColorInt())
-                                            .setTextColor(Color.WHITE)
-                                            .setActionTextColor("#FFEB3B".toColorInt())
-                                            .show()
-                                    } else {
-                                        Snackbar.make(binding.root, "Account created! Verification email failed to sent.", Snackbar.LENGTH_SHORT)
-                                            .setBackgroundTint("#ff4545".toColorInt())
-                                            .setTextColor(Color.WHITE)
-                                            .setActionTextColor("#FFEB3B".toColorInt())
-                                            .show()
-                                        Log.e("AUTH", "Send failed: ${task.exception?.message}")
-                                    }
-                                }
+                Log.d("TAG", "User created with UID: $uid")
+                UserRepository.shared.addUser(user)
 
+                Toast.makeText(requireContext(), "Account created successfully!", Toast.LENGTH_LONG).show()
+                (activity as? AuthActivity)?.navigateToMain()
 
-                                (activity as? AuthActivity)?.navigateToMain()
-                            }
-                        }
-                } else {
-                    setLoading(false)
-                    val errorMessage = when {
-                        task.exception?.message?.contains("email address is already") == true ->
-                            "An account with this email already exists"
-                        task.exception?.message?.contains("email address is badly") == true ->
-                            "Invalid email format"
-                        task.exception?.message?.contains("weak password") == true ->
-                            "Password is too weak"
-                        else -> task.exception?.message ?: "Registration failed"
-                    }
-                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                val errorMessage = when {
+                    e.message?.contains("email address is already") == true ->
+                        "An account with this email already exists"
+                    e.message?.contains("email address is badly") == true ->
+                        "Invalid email format"
+                    e.message?.contains("weak password") == true ->
+                        "Password is too weak"
+                    else -> e.message ?: "Registration failed"
                 }
+                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+            } finally {
+                setLoading(false)
             }
+        }
     }
-
     private fun setLoading(isLoading: Boolean) {
         binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
         binding.btnRegister.isEnabled = !isLoading
