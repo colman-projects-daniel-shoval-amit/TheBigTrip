@@ -21,7 +21,8 @@
 
     <fragment
         android:id="@+id/mapFragment"
-        android:name="com.dsa.thebigtrip.ProfileFragment"
+        android:name="com.dsa.thebigtrip.MapFragment"
         android:label="Map" />
+
 
 </navigation>
