@@ -6,12 +6,12 @@
 
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.dsa.thebigtrip.ProfileFragment"
+        android:name="com.dsa.thebigtrip.fragments.ProfileFragment"
         android:label="Profile" />
 
     <fragment
         android:id="@+id/myPostsFragment"
-        android:name="com.dsa.thebigtrip.ProfileFragment"
+        android:name="com.dsa.thebigtrip.fragments.ProfileFragment"
         android:label="My Posts" />
 
     <fragment
