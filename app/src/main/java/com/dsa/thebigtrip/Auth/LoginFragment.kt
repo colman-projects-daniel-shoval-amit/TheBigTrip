@@ -59,7 +59,6 @@ class LoginFragment : Fragment() {
             findNavController().navigate(R.id.action_login_to_register)
         }
 
-        // Clear errors on focus
         binding.etEmail.setOnFocusChangeListener { _, _ -> binding.tilEmail.error = null }
         binding.etPassword.setOnFocusChangeListener { _, _ -> binding.tilPassword.error = null }
     }
@@ -102,6 +101,8 @@ class LoginFragment : Fragment() {
                         .setTextColor(Color.WHITE)
                         .setActionTextColor("#FFEB3B".toColorInt())
                         .show()
+
+
                     (activity as? AuthActivity)?.navigateToMain()
                 } else {
                     val errorMessage = when {
