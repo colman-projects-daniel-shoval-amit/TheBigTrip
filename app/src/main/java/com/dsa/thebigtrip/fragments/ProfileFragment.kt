@@ -133,6 +133,7 @@ class ProfileFragment : Fragment() {
         isEditMode = false
         imageSelected = false
         binding.tilEditName.visibility = View.GONE
+        binding.fabPickImage.visibility = View.GONE
         binding.btnEditProfile.text = "Edit Profile"
     }
 
