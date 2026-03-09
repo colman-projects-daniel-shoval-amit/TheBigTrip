@@ -20,7 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.dsa.thebigtrip.data.user.User
-import com.dsa.thebigtrip.data.user.UserRepository
+import com.dsa.thebigtrip.data.repository.users.UserRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 

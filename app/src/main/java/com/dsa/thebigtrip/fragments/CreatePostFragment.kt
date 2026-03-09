@@ -1,13 +1,11 @@
-package com.dsa.thebigtrip.Post
+package com.dsa.thebigtrip.fragments
 
-import android.graphics.Color
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.Fragment
 import com.dsa.thebigtrip.databinding.FragmentCreatePostBinding
-import com.google.android.material.snackbar.Snackbar
 import java.util.regex.Pattern
 
 class CreatePostFragment : Fragment() {
@@ -25,6 +23,7 @@ class CreatePostFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentCreatePostBinding.inflate(inflater, container, false)
+        setupView()
         // Inflate the layout for this fragment
         return binding.root
     }
@@ -66,6 +65,7 @@ class CreatePostFragment : Fragment() {
         }
     }
 
+    private fun setupView(){}
     private fun publishPost(title: String, description: String, image: String, location: String) {
         setLoading(true)
 //        post.submitPost(title, description, image, location)

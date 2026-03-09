@@ -1,18 +1,18 @@
-package com.dsa.thebigtrip.data.user
+package com.dsa.thebigtrip.data.repository.users
 
 import androidx.lifecycle.LiveData
-import com.dsa.thebigtrip.data.AppLocalDb
+import com.dsa.thebigtrip.dao.AppLocalDb
+import com.dsa.thebigtrip.dao.AppLocalDbRepository
 import com.dsa.thebigtrip.data.models.FirebaseUserModel
-import com.dsa.thebigtrip.data.user.UserDto
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.CoroutineScope
+import com.dsa.thebigtrip.data.user.User
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class UserRepository {
 
-    private val userDao =  AppLocalDb.db.userDao()!!
+    private val database: AppLocalDbRepository = AppLocalDb.db
+
+    private val userDao =  AppLocalDb.db.userDao
     private val firebaseUserModel = FirebaseUserModel()
 
     companion object {
