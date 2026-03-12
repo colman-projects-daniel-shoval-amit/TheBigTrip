@@ -51,7 +51,7 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
         recyclerView = view.findViewById(R.id.postsRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        insertStubPosts()
+//        insertStubPosts()
         loadPosts()
     }
 
