@@ -11,7 +11,7 @@
 
     <fragment
         android:id="@+id/myPostsFragment"
-        android:name="com.dsa.thebigtrip.fragments.ProfileFragment"
+        android:name="com.dsa.thebigtrip.posts.MyPostsFragment"
         android:label="My Posts" />
 
     <fragment
