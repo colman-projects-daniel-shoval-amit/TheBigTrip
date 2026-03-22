@@ -8,6 +8,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import com.dsa.thebigtrip.data.post.PostRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -15,18 +17,11 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import androidx.navigation.fragment.findNavController
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
     private lateinit var googleMap: GoogleMap
-
-    //TODO: Take real locations from db of posts
-    private val locations = listOf(
-        LatLng(32.0853, 34.7818), // Tel Aviv
-        LatLng(31.7683, 35.2137), // Jerusalem
-        LatLng(32.7940, 34.9896)  // Haifa
-    )
+    private val repository = PostRepository.shared
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,16 +47,17 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
         googleMap.setOnMapLoadedCallback {
             googleMap.moveCamera(
-                CameraUpdateFactory.newLatLngZoom(israelCenter, 8f)
+                CameraUpdateFactory.newLatLngZoom(israelCenter, 7f)
             )
         }
 
-        addCustomMarkers()
+        observePostsAndAddMarkers()
+
         googleMap.setOnMarkerClickListener { marker ->
 
             val bundle = Bundle()
             bundle.putString("locationName", marker.title)
-            //TODO: Here put the fragment to move or w.e you want to do when the market is clicked
+
             findNavController().navigate(
                 R.id.profileFragment,
                 bundle
@@ -69,9 +65,48 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
             true
         }
+
         enableUserLocation()
     }
 
+    // 🔥 MAIN LOGIC: observe DB and update markers
+    private fun observePostsAndAddMarkers() {
+        repository.getAllPosts().observe(viewLifecycleOwner) { posts ->
+
+            googleMap.clear()
+
+            for (post in posts) {
+
+                val lat = post.latitude
+                val lng = post.longitude
+
+                if (lat != null && lng != null) {
+
+                    val latLng = LatLng(lat, lng)
+
+                    googleMap.addMarker(
+                        MarkerOptions()
+                            .position(latLng)
+                            .title(post.caption ?: "Trip")
+                            .snippet(post.locationName ?: "")
+                    )
+                }
+            }
+
+            // 🔥 Move camera to first post
+            if (posts.isNotEmpty()) {
+                val first = posts.first()
+                if (first.latitude != null && first.longitude != null) {
+                    val latLng = LatLng(first.latitude!!, first.longitude!!)
+                    googleMap.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(latLng, 10f)
+                    )
+                }
+            }
+        }
+    }
+
+    // 📍 User location
     private fun enableUserLocation() {
         if (ActivityCompat.checkSelfPermission(
                 requireContext(),
@@ -97,17 +132,6 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                     CameraUpdateFactory.newLatLngZoom(userLatLng, 12f)
                 )
             }
-            // If location is null stays on Israel
-        }
-    }
-
-    private fun addCustomMarkers() {
-        for (latLng in locations) {
-            googleMap.addMarker(
-                MarkerOptions()
-                    .position(latLng)
-                    .title("Trip Location")
-            )
         }
     }
 }
