@@ -6,9 +6,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
+import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.post.PostRepository
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -17,11 +19,20 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.squareup.picasso.Picasso
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
     private lateinit var googleMap: GoogleMap
+
+    private lateinit var previewCard: View
+    private lateinit var previewImage: ImageView
+    private lateinit var previewTitle: TextView
+    private lateinit var previewLocation: TextView
+    private lateinit var closePreview: TextView
+
     private val repository = PostRepository.shared
+    private var cachedPosts: List<Post> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,7 +43,16 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+
+        previewCard = view.findViewById(R.id.postPreviewCard)
+        previewImage = view.findViewById(R.id.previewImage)
+        previewTitle = view.findViewById(R.id.previewTitle)
+        previewLocation = view.findViewById(R.id.previewLocation)
+        closePreview = view.findViewById(R.id.closePreview)
+
+        closePreview.setOnClickListener {
+            previewCard.visibility = View.GONE
+        }
 
         val mapFragment =
             childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
@@ -55,13 +75,22 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
         googleMap.setOnMarkerClickListener { marker ->
 
-            val bundle = Bundle()
-            bundle.putString("locationName", marker.title)
+            val postId = marker.tag as? String ?: return@setOnMarkerClickListener true
 
-            findNavController().navigate(
-                R.id.profileFragment,
-                bundle
-            )
+            val post = cachedPosts.find { it.id == postId }
+
+            post?.let {
+                previewTitle.text = it.caption ?: ""
+                previewLocation.text = it.locationName ?: ""
+
+                if (!it.imageUrl.isNullOrEmpty()) {
+                    Picasso.get().load(it.imageUrl).into(previewImage)
+                } else {
+                    previewImage.setImageDrawable(null)
+                }
+
+                previewCard.visibility = View.VISIBLE
+            }
 
             true
         }
@@ -69,44 +98,42 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         enableUserLocation()
     }
 
-    // 🔥 MAIN LOGIC: observe DB and update markers
     private fun observePostsAndAddMarkers() {
         repository.getAllPosts().observe(viewLifecycleOwner) { posts ->
+
+            cachedPosts = posts
 
             googleMap.clear()
 
             for (post in posts) {
-
                 val lat = post.latitude
                 val lng = post.longitude
 
                 if (lat != null && lng != null) {
-
-                    val latLng = LatLng(lat, lng)
-
-                    googleMap.addMarker(
+                    val marker = googleMap.addMarker(
                         MarkerOptions()
-                            .position(latLng)
+                            .position(LatLng(lat, lng))
                             .title(post.caption ?: "Trip")
                             .snippet(post.locationName ?: "")
                     )
+                    marker?.tag = post.id
                 }
             }
 
-            // 🔥 Move camera to first post
             if (posts.isNotEmpty()) {
                 val first = posts.first()
                 if (first.latitude != null && first.longitude != null) {
-                    val latLng = LatLng(first.latitude!!, first.longitude!!)
                     googleMap.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(latLng, 10f)
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(first.latitude!!, first.longitude!!),
+                            10f
+                        )
                     )
                 }
             }
         }
     }
 
-    // 📍 User location
     private fun enableUserLocation() {
         if (ActivityCompat.checkSelfPermission(
                 requireContext(),
@@ -127,9 +154,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
         fusedLocationClient.lastLocation.addOnSuccessListener { location ->
             location?.let {
-                val userLatLng = LatLng(it.latitude, it.longitude)
                 googleMap.animateCamera(
-                    CameraUpdateFactory.newLatLngZoom(userLatLng, 12f)
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(it.latitude, it.longitude),
+                        12f
+                    )
                 )
             }
         }
