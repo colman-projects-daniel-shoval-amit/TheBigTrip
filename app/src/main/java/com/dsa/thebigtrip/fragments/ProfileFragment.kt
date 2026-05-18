@@ -17,7 +17,6 @@ import com.dsa.thebigtrip.data.user.User
 import com.dsa.thebigtrip.data.repository.users.UserRepository
 import com.dsa.thebigtrip.databinding.FragmentProfileBinding
 import com.dsa.thebigtrip.utils.ImageUtil
-import com.dsa.thebigtrip.utils.bitmap
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -27,7 +26,7 @@ class ProfileFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var isEditMode = false
-    private var imageSelected = false
+    private var selectedImageUri: android.net.Uri? = null
     private var currentUser: User? = null
 
     private lateinit var auth: FirebaseAuth
@@ -42,8 +41,8 @@ class ProfileFragment : Fragment() {
             ActivityResultContracts.PickVisualMedia()
         ) { uri ->
             if (uri != null) {
+                selectedImageUri = uri
                 binding.ivProfileImage.setImageURI(uri)
-                imageSelected = true
             }
         }
     }
@@ -131,7 +130,7 @@ class ProfileFragment : Fragment() {
 
     private fun exitEditMode() {
         isEditMode = false
-        imageSelected = false
+        selectedImageUri = null
         binding.tilEditName.visibility = View.GONE
         binding.fabPickImage.visibility = View.GONE
         binding.btnEditProfile.text = "Edit Profile"
@@ -151,14 +150,13 @@ class ProfileFragment : Fragment() {
             try {
                 var imageUrl = currentUser?.imageUri
 
-                // Upload new image if selected
-                if (imageSelected) {
-                    val bitmap = binding.ivProfileImage.bitmap
-                    if (bitmap != null) {
-                        val uploadedUrl = ImageUtil.uploadUserProfileImage(bitmap, uid)
-                        if (uploadedUrl != null) {
-                            imageUrl = uploadedUrl
-                        }
+                val uri = selectedImageUri
+                if (uri != null) {
+                    val uploadedUrl = UserRepository.shared.uploadProfilePicture(uri, uid)
+                    if (uploadedUrl != null) {
+                        imageUrl = uploadedUrl
+                    } else {
+                        Toast.makeText(requireContext(), "Image upload failed", Toast.LENGTH_SHORT).show()
                     }
                 }
 
@@ -172,7 +170,6 @@ class ProfileFragment : Fragment() {
                 UserRepository.shared.updateUser(updatedUser)
                 currentUser = updatedUser
 
-                // Update UI
                 binding.tvWelcome.text = "Welcome, $name!"
                 binding.tvUserName.text = name
 

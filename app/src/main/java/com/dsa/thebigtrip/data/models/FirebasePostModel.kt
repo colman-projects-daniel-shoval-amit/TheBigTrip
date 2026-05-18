@@ -20,16 +20,10 @@ class FirebasePostModel {
             .await()
     }
 
-    suspend fun getAllPosts(): Post? {
-        val result = db.collection(POSTS)
-            .document()
-            .get()
-            .await()
-
-        return if (result.exists()) {
-            Post.fromJson(result.data!!)
-        } else {
-            null
+    suspend fun getAllPosts(): List<Post> {
+        val result = db.collection(POSTS).get().await()
+        return result.documents.mapNotNull { doc ->
+            if (doc.exists()) runCatching { Post.fromJson(doc.data!!) }.getOrNull() else null
         }
     }
 

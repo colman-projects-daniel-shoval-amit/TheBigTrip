@@ -9,14 +9,19 @@ import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import com.dsa.thebigtrip.data.repository.posts.PostRepository
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import androidx.navigation.fragment.findNavController
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.launch
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
@@ -24,18 +29,9 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            enableUserLocation()
-        }
+    ) { isGranted ->
+        if (isGranted) enableUserLocation()
     }
-
-    //TODO: Take real locations from db of posts
-    private val locations = listOf(
-        LatLng(32.0853, 34.7818), // Tel Aviv
-        LatLng(31.7683, 35.2137), // Jerusalem
-        LatLng(32.7940, 34.9896)  // Haifa
-    )
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -47,38 +43,44 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        val mapFragment =
-            childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
-
+        val mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
     }
 
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
 
-        val israelCenter = LatLng(31.0461, 34.8516)
-
         googleMap.setOnMapLoadedCallback {
             googleMap.moveCamera(
-                CameraUpdateFactory.newLatLngZoom(israelCenter, 8f)
+                CameraUpdateFactory.newLatLngZoom(LatLng(31.0461, 34.8516), 8f)
             )
         }
 
-        addCustomMarkers()
         googleMap.setOnMarkerClickListener { marker ->
-
-            val bundle = Bundle()
-            bundle.putString("locationName", marker.title)
-            //TODO: Here put the fragment to move or w.e you want to do when the market is clicked
-            findNavController().navigate(
-                R.id.profileFragment,
-                bundle
-            )
-
+            val postId = marker.tag as? String
+            if (postId != null) {
+                val bundle = Bundle().apply { putString("postId", postId) }
+                findNavController().navigate(R.id.action_mapFragment_to_postDetailsFragment, bundle)
+            }
             true
         }
+
         enableUserLocation()
+        loadPostMarkers()
+    }
+
+    private fun loadPostMarkers() {
+        lifecycleScope.launch {
+            val posts = PostRepository.shared.getAllPosts()
+            for (post in posts) {
+                val marker = googleMap.addMarker(
+                    MarkerOptions()
+                        .position(post.location)
+                        .title(post.title)
+                )
+                marker?.tag = post.id
+            }
+        }
     }
 
     private fun enableUserLocation() {
@@ -93,27 +95,17 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
         googleMap.isMyLocationEnabled = true
 
-        val fusedLocationClient =
-            LocationServices.getFusedLocationProviderClient(requireActivity())
-
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            location?.let {
-                val userLatLng = LatLng(it.latitude, it.longitude)
-                googleMap.animateCamera(
-                    CameraUpdateFactory.newLatLngZoom(userLatLng, 12f)
-                )
+        val cts = CancellationTokenSource()
+        LocationServices.getFusedLocationProviderClient(requireActivity())
+            .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
+            .addOnSuccessListener { location ->
+                if (location != null) {
+                    googleMap.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(location.latitude, location.longitude), 15f
+                        )
+                    )
+                }
             }
-            // If location is null stays on Israel
-        }
-    }
-
-    private fun addCustomMarkers() {
-        for (latLng in locations) {
-            googleMap.addMarker(
-                MarkerOptions()
-                    .position(latLng)
-                    .title("Trip Location")
-            )
-        }
     }
 }

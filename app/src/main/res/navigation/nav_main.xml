@@ -22,7 +22,19 @@
     <fragment
         android:id="@+id/mapFragment"
         android:name="com.dsa.thebigtrip.MapFragment"
-        android:label="Map" />
+        android:label="Map">
+        <action
+            android:id="@+id/action_mapFragment_to_postDetailsFragment"
+            app:destination="@id/postDetailsFragment" />
+    </fragment>
 
+    <fragment
+        android:id="@+id/postDetailsFragment"
+        android:name="com.dsa.thebigtrip.fragments.PostDetailsFragment"
+        android:label="Post Details">
+        <argument
+            android:name="postId"
+            app:argType="string" />
+    </fragment>
 
 </navigation>

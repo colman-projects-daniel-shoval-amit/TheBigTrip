@@ -14,14 +14,20 @@ interface PostDao {
     @Query("SELECT * FROM Post")
     fun getAllPosts(): LiveData<MutableList<Post>>
 
+    @Query("SELECT * FROM Post")
+    suspend fun getAllPostsOnce(): List<Post>
+
     @Query("SELECT * FROM Post WHERE id = :id")
     fun getPostById(id: String): LiveData<Post?>
 
+    @Query("SELECT * FROM Post WHERE id = :id")
+    suspend fun getPostByIdOnce(id: String): Post?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertPost(vararg post: Post)
+    suspend fun insertPost(vararg post: Post)
 
     @Delete
-    fun deletePost(post: Post)
+    suspend fun deletePost(post: Post)
 
 
 }

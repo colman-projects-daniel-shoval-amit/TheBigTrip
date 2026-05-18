@@ -1,6 +1,7 @@
 package com.dsa.thebigtrip
 
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
@@ -23,5 +24,13 @@ class MainActivity : AppCompatActivity() {
         val navController = navHostFragment.navController
 
         binding.bottomNav.setupWithNavController(navController)
+
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            binding.bottomNav.visibility = if (destination.id == R.id.postDetailsFragment) {
+                View.GONE
+            } else {
+                View.VISIBLE
+            }
+        }
     }
 }

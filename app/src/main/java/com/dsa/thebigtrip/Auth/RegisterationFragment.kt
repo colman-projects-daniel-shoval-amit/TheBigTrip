@@ -140,7 +140,7 @@ class RegisterFragment : Fragment() {
                     uid = uid,
                     fullName = name,
                     email = email,
-                    imageUri = "bob"
+                    imageUri = null,
                 )
 
                 Log.d("TAG", "User created with UID: $uid")
