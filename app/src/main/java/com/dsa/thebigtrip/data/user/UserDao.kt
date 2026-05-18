@@ -10,12 +10,12 @@ import androidx.room.Update
 @Dao
 interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(user: User)
+    suspend fun insert(user: User)
 
     @Query("SELECT * FROM User WHERE uid = :uid")
-    fun getUserById(uid: String): LiveData<User?>
+    suspend fun getUserById(uid: String): User?
 
     @Update
-    fun updateUser(user: User)
+    suspend fun updateUser(user: User)
 
 }

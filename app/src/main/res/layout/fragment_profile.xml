@@ -43,6 +43,7 @@
             app:fabSize="mini"
             app:backgroundTint="#2E7D32"
             app:tint="#FFFFFF"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@id/cardProfileImage"
             app:layout_constraintEnd_toEndOf="@id/cardProfileImage" />
 
