@@ -30,8 +30,6 @@ class PostDetailsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.toolbar.setNavigationOnClickListener { findNavController().popBackStack() }
-
         val postId = arguments?.getString("postId")
         if (postId.isNullOrEmpty()) {
             Toast.makeText(requireContext(), "Post not found", Toast.LENGTH_SHORT).show()
