@@ -34,13 +34,25 @@
                     app:cardCornerRadius="12dp"
                     app:cardElevation="2dp">
 
-                    <ImageView
-                        android:id="@+id/ivPostImage"
+                    <androidx.constraintlayout.widget.ConstraintLayout
                         android:layout_width="match_parent"
-                        android:layout_height="220dp"
-                        android:scaleType="centerCrop"
-                        android:clipToOutline="true"
-                        android:src="@drawable/ic_camera" />
+                        android:layout_height="wrap_content">
+
+                        <ImageView
+                            android:id="@+id/ivPostImage"
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:scaleType="centerCrop"
+                            android:adjustViewBounds="true"
+                            android:clipToOutline="true"
+                            android:src="@drawable/ic_camera"
+                            app:layout_constraintDimensionRatio="H,16:9"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent" />
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
 
                 </com.google.android.material.card.MaterialCardView>
 

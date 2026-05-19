@@ -73,6 +73,7 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck-debug")
     
     implementation("com.google.android.gms:play-services-maps:19.0.0")
+    implementation("com.google.maps.android:android-maps-utils:3.8.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("com.google.android.gms:play-services-base:18.5.0")
 

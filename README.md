@@ -5,7 +5,7 @@ An Android app for sharing and discovering travel locations. Users create posts 
 ## Features
 
 - **Authentication** — register, login, forgot password via Firebase Auth
-- **Map View** — Google Maps with markers for all trip posts; centers on device location on launch; tap a marker to view post details
+- **Map View** — Google Maps with clustered markers for all trip posts; centers on device location on launch; tap a single marker or cluster to browse posts; camera position preserved when returning from post details
 - **Post Details** — full-screen detail view with image, title, description, and location; back-navigates to map
 - **Create Post** — publish a trip post with title, description, GPS coordinates, and optional image (system photo picker)
 - **Profile** — view account info, upload/change profile picture, logout
@@ -32,7 +32,7 @@ An Android app for sharing and discovering travel locations. Users create posts 
 |---|---|
 | Language | Kotlin 2.0.21 |
 | UI | Fragments + View Binding + Navigation Component |
-| Maps | Google Maps SDK 18.2.0 |
+| Maps | Google Maps SDK 18.2.0 + Maps Utils 3.8.0 (clustering) |
 | Auth | Firebase Authentication |
 | Remote DB | Firebase Firestore |
 | Image Storage | Firebase Storage |
@@ -46,9 +46,10 @@ MVVM-adjacent with Repository pattern. Every write syncs to both Firestore (remo
 
 ```
 AuthActivity  ──►  MainActivity
-                      ├── MapFragment           (browse posts on map; tap marker → PostDetailsFragment)
-                      │     └── PostDetailsFragment  (full post view; not a bottom-nav tab)
-                      ├── CreatePostFragment     (new post with image + GPS)
+                      ├── MapFragment                      (clustered map; tap single → PostDetailsFragment; tap cluster → bottom sheet)
+                      │     ├── ClusterPostsBottomSheetFragment  (list of posts at same location; tap → PostDetailsFragment)
+                      │     └── PostDetailsFragment             (full post view; not a bottom-nav tab; back → map restores camera)
+                      ├── CreatePostFragment     (new post with image + GPS auto-fill)
                       └── ProfileFragment        (account, profile picture upload, logout)
 ```
 

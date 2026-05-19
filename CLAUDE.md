@@ -34,6 +34,7 @@ MVVM-adjacent with Repository pattern and dual storage (Firebase + Room).
 - `AuthActivity` is the launcher. Checks Firebase Auth state on start; redirects to `MainActivity` if already logged in.
 - `MainActivity` hosts bottom navigation with three fragments: `MapFragment`, `CreatePostFragment`, `ProfileFragment`.
 - `PostDetailsFragment` is a non-tab nav destination pushed from `MapFragment` when a map marker is tapped. Bottom nav hides via `addOnDestinationChangedListener` in `MainActivity`.
+- `ClusterPostsBottomSheetFragment` (`map/`) is a `BottomSheetDialogFragment` shown via `MapFragment.childFragmentManager` when a cluster marker is tapped. It lists all posts at the clustered location. Navigation from it uses `requireParentFragment().findNavController()` — not its own NavController — because the dialog is attached to `childFragmentManager` and its `parentFragmentManager` differs from the one `setFragmentResultListener` subscribes to. Posts are passed via a `companion object pendingPosts: MutableMap<String, List<Post>>` keyed by UUID (because `Post` contains `LatLng`, which is not `Parcelable`).
 
 **Layers:**
 - `Auth/` — login/register/forgot-password fragments, all inside `AuthActivity`
@@ -52,14 +53,16 @@ MVVM-adjacent with Repository pattern and dual storage (Firebase + Room).
 
 **View binding** is enabled project-wide — all fragments/activities use binding, not `findViewById`. Activities use `XxxBinding.inflate(layoutInflater)`; fragments use the `_binding` nullable pattern with null in `onDestroyView`.
 
-**Location:** `FusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token)` is used instead of `lastLocation` to avoid null on cold starts. Permission is requested via `ActivityResultContracts.RequestPermission`.
+**Location:** `FusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token)` is used instead of `lastLocation` to avoid null on cold starts. Permission is requested via `ActivityResultContracts.RequestPermission`. Two-stage fallback: `getCurrentLocation` → on null result call `lastLocation` → on null result show Snackbar. All async callbacks guard with `!isAdded` / `_binding == null` checks. Never use `setOnMapLoadedCallback` to center the camera — it fires in ~1s and always wins the race against `getCurrentLocation` (several seconds), causing a hardcoded-coordinate flash.
+
+**Map camera persistence:** `MapFragment` holds `private var savedCameraPosition: CameraPosition?`. Before navigating to `PostDetailsFragment` (single item click or cluster bottom sheet item click), the current `googleMap.cameraPosition` is captured. In `onMapReady`, if `savedCameraPosition != null` the camera is restored instantly via `moveCamera`; `enableUserLocation()` is skipped. This survives the `onDestroyView`/`onCreateView` cycle because the fragment instance stays on the back stack. On fresh launch (`savedCameraPosition == null`) the normal GPS-centering flow runs.
 
 ## Key Tech
 
 - Kotlin 2.0.21, compileSdk 36, minSdk 33
 - Room 2.6.1 (KAPT for annotation processing)
 - Firebase BOM 34.9.0 (Auth, Firestore, Storage, Analytics)
-- Google Maps 18.2.0 + Play Services Location 21.0.1
+- Google Maps 18.2.0 + Maps Utils 3.8.0 (`ClusterManager`, `ClusterItem`) + Play Services Location 21.0.1
 - Navigation Component 2.9.7 (single-activity nav graph; no Safe Args plugin — args passed as Bundle)
 - Kotlin Coroutines 1.8.0
 - Picasso (image loading; `CircleTransform` for profile pictures)
