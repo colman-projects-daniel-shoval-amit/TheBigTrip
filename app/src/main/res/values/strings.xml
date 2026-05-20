@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TheBigTrip</string>
+    <string name="app_name">The Big Trip</string>
     <string name="don_t_have_an_account">Don\'t have an account?</string>
     <string name="sign_up">Sign Up</string>
     <string name="or">OR</string>
@@ -12,4 +12,8 @@
     <string name="the_big_trip">The Big Trip</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="welcome_message">Welcome, %1$s!</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="save_changes">Save Changes</string>
 </resources>

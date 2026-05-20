@@ -1,4 +1,5 @@
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -6,34 +7,22 @@
     android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
-
-        <TextView
-            android:id="@+id/create_post_main_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="26dp"
-            android:text="Create Post"
-            android:textColor="@android:color/black"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_view"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
             app:cardBackgroundColor="#E8F5E9"
             app:cardCornerRadius="8dp"
             app:cardElevation="4dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/create_post_main_title">
+            app:layout_constraintTop_toTopOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -105,6 +94,8 @@
                     android:layout_height="150dp"
                     android:layout_marginTop="8dp"
                     android:background="@drawable/dashed_border"
+                    android:clickable="true"
+                    android:focusable="true"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/image_label">
@@ -116,6 +107,13 @@
                         android:layout_gravity="center"
                         android:text="Click to upload image"
                         android:textColor="#888888" />
+
+                    <ImageView
+                        android:id="@+id/image_preview"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:visibility="gone" />
 
                 </FrameLayout>
 
@@ -130,31 +128,79 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/image_upload_container" />
 
-                <EditText
-                    android:id="@+id/location_input"
+                <!-- Places autocomplete search field -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/location_search_layout"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:background="@drawable/solid_border"
-                    android:drawableEnd="@drawable/ic_gps"
-                    android:drawablePadding="8dp"
-                    android:hint="Enter location"
-                    android:inputType="text"
-                    android:padding="12dp"
+                    android:hint="Search for a place..."
+                    app:startIconDrawable="@drawable/ic_search"
+                    app:startIconTint="?attr/colorOnSurfaceVariant"
+                    app:boxStrokeColor="?attr/colorPrimary"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/location_label" />
+                    app:layout_constraintTop_toBottomOf="@id/location_label">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/location_search_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:focusable="false"
+                        android:cursorVisible="false"
+                        android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- Read-only coordinates display + GPS button -->
+                <LinearLayout
+                    android:id="@+id/location_coords_row"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/location_search_layout">
+
+                    <TextView
+                        android:id="@+id/location_coords_display"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/solid_border"
+                        android:padding="12dp"
+                        android:hint="Coordinates"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textColorHint="?attr/colorOnSurfaceVariant"
+                        android:textSize="13sp"
+                        android:focusable="false"
+                        android:ellipsize="end"
+                        android:maxLines="1" />
+
+                    <ImageButton
+                        android:id="@+id/location_gps_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_gps"
+                        android:contentDescription="Use current location"
+                        android:padding="10dp" />
+                </LinearLayout>
+
                 <ProgressBar
                     android:id="@+id/progressBar"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:visibility="gone"
                     android:layout_marginTop="12dp"
                     android:indeterminateTint="#2E7D32"
-                    app:layout_constraintStart_toStartOf="parent"
+                    android:visibility="gone"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/image_upload_container"
-                    tools:visibility="visible"/>
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/location_coords_row"
+                    tools:visibility="visible" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -171,6 +217,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/card_view" />
 
-
     </androidx.constraintlayout.widget.ConstraintLayout>
-</ScrollView>
+
+</androidx.core.widget.NestedScrollView>

@@ -7,22 +7,34 @@
     <fragment
         android:id="@+id/profileFragment"
         android:name="com.dsa.thebigtrip.fragments.ProfileFragment"
-        android:label="Profile" />
+        android:label="@string/app_name" />
 
     <fragment
         android:id="@+id/myPostsFragment"
         android:name="com.dsa.thebigtrip.fragments.ProfileFragment"
-        android:label="My Posts" />
+        android:label="@string/app_name" />
 
     <fragment
         android:id="@+id/createPostFragment"
-        android:name="com.dsa.thebigtrip.Post.CreatePostFragment"
-        android:label="Create Post" />
+        android:name="com.dsa.thebigtrip.fragments.CreatePostFragment"
+        android:label="@string/app_name" />
 
     <fragment
         android:id="@+id/mapFragment"
         android:name="com.dsa.thebigtrip.MapFragment"
-        android:label="Map" />
+        android:label="@string/app_name">
+        <action
+            android:id="@+id/action_mapFragment_to_postDetailsFragment"
+            app:destination="@id/postDetailsFragment" />
+    </fragment>
 
+    <fragment
+        android:id="@+id/postDetailsFragment"
+        android:name="com.dsa.thebigtrip.fragments.PostDetailsFragment"
+        android:label="Post Details">
+        <argument
+            android:name="postId"
+            app:argType="string" />
+    </fragment>
 
 </navigation>

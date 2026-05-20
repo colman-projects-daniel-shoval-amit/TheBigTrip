@@ -1,9 +1,8 @@
-package com.dsa.thebigtrip.data
+package com.dsa.thebigtrip.dao
 
-import androidx.room.Database
 import androidx.room.Room
-import androidx.room.RoomDatabase
 import com.dsa.thebigtrip.base.TheBigTrip
+import com.dsa.thebigtrip.dao.AppLocalDbRepository
 
 object AppLocalDb {
     val db: AppLocalDbRepository by lazy {
