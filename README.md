@@ -7,7 +7,7 @@ An Android app for sharing and discovering travel locations. Users create posts 
 - **Authentication** — register, login, forgot password via Firebase Auth
 - **Map View** — Google Maps with clustered markers for all trip posts; centers on device location on launch; tap a single marker or cluster to browse posts; camera position preserved when returning from post details
 - **Post Details** — full-screen detail view with image, title, description, and location; back-navigates to map
-- **Create Post** — publish a trip post with title, description, GPS coordinates, and optional image (system photo picker)
+- **Create Post** — publish a trip post with title, description, and optional image; location picked via Places Autocomplete search (Places API New) or GPS auto-fill button
 - **Profile** — view account info, upload/change profile picture, logout
 
 ## Requirements
@@ -33,6 +33,7 @@ An Android app for sharing and discovering travel locations. Users create posts 
 | Language | Kotlin 2.0.21 |
 | UI | Fragments + View Binding + Navigation Component |
 | Maps | Google Maps SDK 18.2.0 + Maps Utils 3.8.0 (clustering) |
+| Places | Google Places SDK 3.5.0 (Places API New — Autocomplete) |
 | Auth | Firebase Authentication |
 | Remote DB | Firebase Firestore |
 | Image Storage | Firebase Storage |

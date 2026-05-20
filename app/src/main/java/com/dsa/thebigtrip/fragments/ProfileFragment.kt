@@ -167,7 +167,7 @@ class ProfileFragment : Fragment() {
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Failed to save: ${e.message}", Toast.LENGTH_LONG).show()
             } finally {
-                setLoading(false)
+                if (_binding != null) setLoading(false)
             }
         }
     }

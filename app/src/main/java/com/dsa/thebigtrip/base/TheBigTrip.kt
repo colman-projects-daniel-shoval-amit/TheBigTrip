@@ -3,8 +3,10 @@ package com.dsa.thebigtrip.base
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import com.dsa.thebigtrip.BuildConfig
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.OnMapsSdkInitializedCallback
+import com.google.android.libraries.places.api.Places
 import com.google.firebase.FirebaseApp
 
 class TheBigTrip: Application(), OnMapsSdkInitializedCallback {
@@ -18,6 +20,11 @@ class TheBigTrip: Application(), OnMapsSdkInitializedCallback {
 
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
+
+        // Initialize Places SDK
+        if (!Places.isInitialized()) {
+            Places.initializeWithNewPlacesApiEnabled(applicationContext, BuildConfig.MAPS_API_KEY)
+        }
 
         // Initialize Maps SDK with the latest renderer to avoid potential database lock issues
         MapsInitializer.initialize(applicationContext, MapsInitializer.Renderer.LATEST, this)

@@ -1,11 +1,11 @@
 package com.dsa.thebigtrip.fragments
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -20,10 +20,14 @@ import com.dsa.thebigtrip.data.repository.posts.PostRepository
 import com.dsa.thebigtrip.databinding.FragmentCreatePostBinding
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.AutocompleteActivity
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
-import java.util.regex.Pattern
 
 class CreatePostFragment : Fragment() {
 
@@ -31,10 +35,7 @@ class CreatePostFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var selectedImageUri: Uri? = null
-
-    private val GPS_PATTERN: Pattern = Pattern.compile(
-        "^[-+]?([1-8]?\\d(\\.\\d+)?|90(\\.0+)?),\\s*[-+]?(180(\\.0+)?|((1[0-7]\\d)|([1-9]?\\d))(\\.\\d+)?)$"
-    )
+    private var selectedLatLng: LatLng? = null
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -61,6 +62,29 @@ class CreatePostFragment : Fragment() {
         }
     }
 
+    private val autocompleteLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        when (result.resultCode) {
+            Activity.RESULT_OK -> {
+                result.data?.let { data ->
+                    val place = Autocomplete.getPlaceFromIntent(data)
+                    onPlaceSelected(place)
+                }
+            }
+            AutocompleteActivity.RESULT_ERROR -> {
+                result.data?.let { data ->
+                    val status = Autocomplete.getStatusFromIntent(data)
+                    Snackbar.make(
+                        requireView(),
+                        "Search error: ${status.statusMessage}",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -79,32 +103,35 @@ class CreatePostFragment : Fragment() {
             imagePickerLauncher.launch("image/*")
         }
 
-        // The GPS icon is a drawableEnd on the EditText — detect taps in that region.
-        binding.locationInput.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_UP) {
-                val gpsIcon = binding.locationInput.compoundDrawablesRelative[2]
-                    ?: binding.locationInput.compoundDrawables[2]
-                if (gpsIcon != null) {
-                    val iconStartX = binding.locationInput.width -
-                        binding.locationInput.paddingEnd -
-                        gpsIcon.intrinsicWidth.coerceAtLeast(1)
-                    if (event.x >= iconStartX) {
-                        fetchAndFillLocation()
-                        return@setOnTouchListener true
-                    }
-                }
-            }
-            false
-        }
+        binding.locationSearchLayout.setOnClickListener { launchAutocomplete() }
+        binding.locationSearchInput.setOnClickListener { launchAutocomplete() }
+
+        binding.locationGpsButton.setOnClickListener { fetchAndFillLocation() }
 
         binding.publishButton.setOnClickListener {
             val title = binding.titleInput.text.toString().trim()
-            val location = binding.locationInput.text.toString().trim()
             val description = binding.descriptionInput.text.toString().trim()
-
-            if (validateInput(title, location)) {
-                publishPost(title, description, location)
+            if (validateInput(title)) {
+                publishPost(title, description)
             }
+        }
+    }
+
+    private fun launchAutocomplete() {
+        val intent = Autocomplete.IntentBuilder(
+            AutocompleteActivityMode.OVERLAY,
+            listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG)
+        ).build(requireContext())
+        autocompleteLauncher.launch(intent)
+    }
+
+    private fun onPlaceSelected(place: Place) {
+        val latlng = place.latLng
+        selectedLatLng = latlng
+        binding.locationSearchInput.setText(place.name ?: "")
+        if (latlng != null) {
+            binding.locationCoordsDisplay.text =
+                "%.6f, %.6f".format(latlng.latitude, latlng.longitude)
         }
     }
 
@@ -126,7 +153,10 @@ class CreatePostFragment : Fragment() {
                 if (_binding == null) return@addOnSuccessListener
                 setLocationLoading(false)
                 if (location != null) {
-                    binding.locationInput.setText("${location.latitude}, ${location.longitude}")
+                    selectedLatLng = LatLng(location.latitude, location.longitude)
+                    binding.locationCoordsDisplay.text =
+                        "%.6f, %.6f".format(location.latitude, location.longitude)
+                    binding.locationSearchInput.text?.clear()
                     Toast.makeText(requireContext(), "Location updated successfully!", Toast.LENGTH_SHORT).show()
                 } else {
                     Snackbar.make(
@@ -148,11 +178,11 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun setLocationLoading(isLoading: Boolean) {
-        binding.locationInput.isEnabled = !isLoading
+        binding.locationGpsButton.isEnabled = !isLoading
         binding.progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
     }
 
-    private fun validateInput(title: String, location: String): Boolean {
+    private fun validateInput(title: String): Boolean {
         var isValid = true
 
         if (title.isEmpty()) {
@@ -162,14 +192,13 @@ class CreatePostFragment : Fragment() {
             binding.titleInput.error = null
         }
 
-        if (location.isEmpty()) {
-            binding.locationInput.error = "Location is required"
+        if (selectedLatLng == null) {
+            Snackbar.make(
+                requireView(),
+                "Please search for a location or use the GPS button",
+                Snackbar.LENGTH_LONG
+            ).show()
             isValid = false
-        } else if (!GPS_PATTERN.matcher(location).matches()) {
-            binding.locationInput.error = "Enter valid GPS coordinates (lat, long)"
-            isValid = false
-        } else {
-            binding.locationInput.error = null
         }
 
         if (selectedImageUri == null) {
@@ -180,22 +209,21 @@ class CreatePostFragment : Fragment() {
         return isValid
     }
 
-    private fun publishPost(title: String, description: String, location: String) {
+    private fun publishPost(title: String, description: String) {
         setLoading(true)
 
-        val coords = location.split(",").map { it.trim().toDouble() }
-        val latitude = coords[0]
-        val longitude = coords[1]
+        val latlng = selectedLatLng!!
 
         lifecycleScope.launch {
             val success = PostRepository.shared.createPost(
                 title = title,
                 description = description,
                 imageUri = selectedImageUri,
-                latitude = latitude,
-                longitude = longitude
+                latitude = latlng.latitude,
+                longitude = latlng.longitude
             )
 
+            if (_binding == null) return@launch
             setLoading(false)
             if (success) {
                 Toast.makeText(requireContext(), "Post published successfully!", Toast.LENGTH_SHORT).show()
@@ -217,7 +245,8 @@ class CreatePostFragment : Fragment() {
         binding.publishButton.isEnabled = !isLoading
         binding.descriptionInput.isEnabled = !isLoading
         binding.titleInput.isEnabled = !isLoading
-        binding.locationInput.isEnabled = !isLoading
+        binding.locationSearchInput.isEnabled = !isLoading
+        binding.locationGpsButton.isEnabled = !isLoading
         binding.imageUploadContainer.isEnabled = !isLoading
     }
 

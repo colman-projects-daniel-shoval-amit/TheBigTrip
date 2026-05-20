@@ -24,7 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew test --tests "com.dsa.thebigtrip.ExampleUnitTest"
 ```
 
-Maps API key must be in `local.properties` as `MAPS_API_KEY=...` — the Secrets Gradle plugin injects it into the manifest.
+Maps API key must be in `local.properties` as `MAPS_API_KEY=...` — the Secrets Gradle plugin injects it into the manifest and exposes it as `BuildConfig.MAPS_API_KEY`.
 
 ## Architecture
 
@@ -43,7 +43,7 @@ MVVM-adjacent with Repository pattern and dual storage (Firebase + Room).
 - `dao/` — Room database (`AppLocalDb.db` singleton), DAOs for `User` and `Post`
 - `model/Post.kt`, `data/user/User.kt` — Room entities with `toJson`/`fromJson` for Firestore serialization
 - `utils/ImageUtil.kt` — Firebase Storage upload helpers; resizes to 1024px max before upload
-- `base/TheBigTrip.kt` — Application class, holds global `context`
+- `base/TheBigTrip.kt` — Application class, holds global `context`; initializes Places SDK via `Places.initializeWithNewPlacesApiEnabled(applicationContext, BuildConfig.MAPS_API_KEY)` guarded by `Places.isInitialized()`
 
 **Storage pattern:** Every write goes to both Firestore (remote) and Room (local cache) inside a single `withContext(Dispatchers.IO)` block. Repositories use `suspend` functions; callers use `lifecycleScope`.
 
@@ -54,6 +54,8 @@ MVVM-adjacent with Repository pattern and dual storage (Firebase + Room).
 **View binding** is enabled project-wide — all fragments/activities use binding, not `findViewById`. Activities use `XxxBinding.inflate(layoutInflater)`; fragments use the `_binding` nullable pattern with null in `onDestroyView`.
 
 **Location:** `FusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, token)` is used instead of `lastLocation` to avoid null on cold starts. Permission is requested via `ActivityResultContracts.RequestPermission`. Two-stage fallback: `getCurrentLocation` → on null result call `lastLocation` → on null result show Snackbar. All async callbacks guard with `!isAdded` / `_binding == null` checks. Never use `setOnMapLoadedCallback` to center the camera — it fires in ~1s and always wins the race against `getCurrentLocation` (several seconds), causing a hardcoded-coordinate flash.
+
+**Places Autocomplete (CreatePostFragment):** Location is selected via `Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY, fields)` launched through `ActivityResultContracts.StartActivityForResult`. On `RESULT_OK`, `Autocomplete.getPlaceFromIntent(data)` returns a `Place`; its `latLng` is stored in `selectedLatLng: LatLng?` and displayed in a read-only `TextView`. A separate GPS button (`locationGpsButton`) calls `FusedLocationProviderClient.getCurrentLocation` as a fallback and also sets `selectedLatLng`. Validation checks `selectedLatLng != null` rather than parsing a raw text field — the raw coordinate `EditText` pattern was removed. The Places SDK (New) is initialized once in `TheBigTrip.onCreate`; the key is `BuildConfig.MAPS_API_KEY` from the Secrets Gradle plugin.
 
 **Map camera persistence:** `MapFragment` holds `private var savedCameraPosition: CameraPosition?`. Before navigating to `PostDetailsFragment` (single item click or cluster bottom sheet item click), the current `googleMap.cameraPosition` is captured. In `onMapReady`, if `savedCameraPosition != null` the camera is restored instantly via `moveCamera`; `enableUserLocation()` is skipped. This survives the `onDestroyView`/`onCreateView` cycle because the fragment instance stays on the back stack. On fresh launch (`savedCameraPosition == null`) the normal GPS-centering flow runs.
 
