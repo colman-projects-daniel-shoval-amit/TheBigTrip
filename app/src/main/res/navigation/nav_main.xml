@@ -15,6 +15,11 @@
         android:label="My Posts" />
 
     <fragment
+        android:id="@+id/allPostsFragment"
+        android:name="com.dsa.thebigtrip.posts.AllPostsFragment"
+        android:label="All Posts" />
+
+    <fragment
         android:id="@+id/createPostFragment"
         android:name="com.dsa.thebigtrip.Post.CreatePostFragment"
         android:label="Create Post" />

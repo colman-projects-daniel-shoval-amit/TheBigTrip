@@ -2,6 +2,7 @@ package com.dsa.thebigtrip.data.post
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.google.firebase.Timestamp
 
 @Entity
 data class Post(
@@ -34,17 +35,17 @@ data class Post(
         const val LATITUDE_KEY = "latitude"
         const val LONGITUDE_KEY = "longitude"
 
-        fun fromJson(json: Map<String, Any?>): Post {
+        fun fromJson(json: Map<String, Any?>): Post? {
 
-            val id = json[ID_KEY] as String
-            val userId = json[USER_ID_KEY] as String
+            val id = json[ID_KEY] as? String ?: return null
+            val userId = json[USER_ID_KEY] as? String ?: return null
             val caption = json[CAPTION_KEY] as? String
             val imageUrl = json[IMAGE_URL_KEY] as? String
-            val createdAt = json[CREATED_AT_KEY] as Long
+            val createdAt = parseLong(json[CREATED_AT_KEY])
 
             val locationName = json[LOCATION_NAME_KEY] as? String
-            val latitude = json[LATITUDE_KEY] as? Double
-            val longitude = json[LONGITUDE_KEY] as? Double
+            val latitude = parseDouble(json[LATITUDE_KEY])
+            val longitude = parseDouble(json[LONGITUDE_KEY])
 
             return Post(
                 id = id,
@@ -56,6 +57,28 @@ data class Post(
                 latitude = latitude,
                 longitude = longitude
             )
+        }
+
+        private fun parseLong(value: Any?): Long {
+            return when (value) {
+                is Long -> value
+                is Int -> value.toLong()
+                is Double -> value.toLong()
+                is Float -> value.toLong()
+                is Timestamp -> value.toDate().time
+                else -> 0L
+            }
+        }
+
+        private fun parseDouble(value: Any?): Double? {
+            return when (value) {
+                is Double -> value
+                is Float -> value.toDouble()
+                is Long -> value.toDouble()
+                is Int -> value.toDouble()
+                is String -> value.toDoubleOrNull()
+                else -> null
+            }
         }
     }
 

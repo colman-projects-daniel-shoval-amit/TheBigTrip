@@ -39,7 +39,13 @@ class FirebasePostModel {
             .await()
 
         return result.documents.mapNotNull { doc ->
-            doc.data?.let { Post.fromJson(it) }
+            doc.data?.let {
+                try {
+                    Post.fromJson(it)
+                } catch (e: Exception) {
+                    null
+                }
+            }
         }
     }
 

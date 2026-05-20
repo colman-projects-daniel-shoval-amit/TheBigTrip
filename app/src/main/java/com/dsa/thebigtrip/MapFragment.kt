@@ -8,18 +8,21 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.post.PostRepository
-import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
 import com.squareup.picasso.Picasso
+import kotlinx.coroutines.launch
 
 class MapFragment : Fragment(), OnMapReadyCallback {
 
@@ -33,6 +36,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
 
     private val repository = PostRepository.shared
     private var cachedPosts: List<Post> = emptyList()
+    private var markerPositions: List<LatLng> = emptyList()
+    private var isMapLoaded = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -63,15 +68,13 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
 
-        val israelCenter = LatLng(31.0461, 34.8516)
-
         googleMap.setOnMapLoadedCallback {
-            googleMap.moveCamera(
-                CameraUpdateFactory.newLatLngZoom(israelCenter, 7f)
-            )
+            isMapLoaded = true
+            moveCameraToPosts()
         }
 
         observePostsAndAddMarkers()
+        refreshPosts()
 
         googleMap.setOnMarkerClickListener { marker ->
 
@@ -84,9 +87,13 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 previewLocation.text = it.locationName ?: ""
 
                 if (!it.imageUrl.isNullOrEmpty()) {
-                    Picasso.get().load(it.imageUrl).into(previewImage)
+                    Picasso.get()
+                        .load(it.imageUrl)
+                        .placeholder(R.drawable.bg_image_placeholder)
+                        .error(R.drawable.bg_image_placeholder)
+                        .into(previewImage)
                 } else {
-                    previewImage.setImageDrawable(null)
+                    previewImage.setImageResource(R.drawable.bg_image_placeholder)
                 }
 
                 previewCard.visibility = View.VISIBLE
@@ -104,15 +111,19 @@ class MapFragment : Fragment(), OnMapReadyCallback {
             cachedPosts = posts
 
             googleMap.clear()
+            val positions = mutableListOf<LatLng>()
 
             for (post in posts) {
                 val lat = post.latitude
                 val lng = post.longitude
 
                 if (lat != null && lng != null) {
+                    val position = LatLng(lat, lng)
+                    positions.add(position)
+
                     val marker = googleMap.addMarker(
                         MarkerOptions()
-                            .position(LatLng(lat, lng))
+                            .position(position)
                             .title(post.caption ?: "Trip")
                             .snippet(post.locationName ?: "")
                     )
@@ -120,16 +131,42 @@ class MapFragment : Fragment(), OnMapReadyCallback {
                 }
             }
 
-            if (posts.isNotEmpty()) {
-                val first = posts.first()
-                if (first.latitude != null && first.longitude != null) {
-                    googleMap.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(
-                            LatLng(first.latitude!!, first.longitude!!),
-                            10f
-                        )
-                    )
-                }
+            markerPositions = positions
+            if (isMapLoaded) {
+                moveCameraToPosts()
+            }
+        }
+    }
+
+    private fun moveCameraToPosts() {
+        if (markerPositions.isEmpty()) {
+            googleMap.moveCamera(
+                CameraUpdateFactory.newLatLngZoom(LatLng(31.0461, 34.8516), 7f)
+            )
+            return
+        }
+
+        if (markerPositions.size == 1) {
+            googleMap.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(markerPositions.first(), 10f)
+            )
+            return
+        }
+
+        val boundsBuilder = LatLngBounds.Builder()
+        markerPositions.forEach { boundsBuilder.include(it) }
+
+        googleMap.animateCamera(
+            CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 120)
+        )
+    }
+
+    private fun refreshPosts() {
+        lifecycleScope.launch {
+            try {
+                repository.refreshPosts()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Failed to refresh map posts", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -148,19 +185,5 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         }
 
         googleMap.isMyLocationEnabled = true
-
-        val fusedLocationClient =
-            LocationServices.getFusedLocationProviderClient(requireActivity())
-
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            location?.let {
-                googleMap.animateCamera(
-                    CameraUpdateFactory.newLatLngZoom(
-                        LatLng(it.latitude, it.longitude),
-                        12f
-                    )
-                )
-            }
-        }
     }
 }

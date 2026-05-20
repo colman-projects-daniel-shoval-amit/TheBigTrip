@@ -19,6 +19,10 @@ class PostRepository {
         return postDao.getAllPosts()
     }
 
+    fun getPostsByUserId(userId: String): LiveData<List<Post>> {
+        return postDao.getPostsByUserId(userId)
+    }
+
     suspend fun refreshPosts() {
         val posts = firebaseModel.getAllPosts()
 
@@ -53,5 +57,9 @@ class PostRepository {
 
     suspend fun deletePost(postId: String) {
         firebaseModel.deletePost(postId)
+
+        withContext(Dispatchers.IO) {
+            postDao.deletePost(postId)
+        }
     }
 }

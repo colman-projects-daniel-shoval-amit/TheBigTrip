@@ -13,6 +13,11 @@
         android:title="My Posts"/>
 
     <item
+        android:id="@+id/allPostsFragment"
+        android:icon="@drawable/bg_circle_green_light"
+        android:title="All Posts"/>
+
+    <item
         android:id="@+id/createPostFragment"
         android:icon="@drawable/bg_circle_green_light"
         android:title="Create Post"/>
