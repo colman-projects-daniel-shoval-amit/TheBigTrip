@@ -4,27 +4,27 @@
 
     <item
         android:id="@+id/profileFragment"
-        android:icon="@drawable/bg_circle_green_light"
+        android:icon="@drawable/ic_nav_profile"
         android:title="Profile"/>
 
     <item
         android:id="@+id/myPostsFragment"
-        android:icon="@drawable/bg_circle_green_light"
+        android:icon="@drawable/ic_nav_my_posts"
         android:title="My Posts"/>
 
     <item
         android:id="@+id/allPostsFragment"
-        android:icon="@drawable/bg_circle_green_light"
+        android:icon="@drawable/ic_nav_all_posts"
         android:title="All Posts"/>
 
     <item
         android:id="@+id/createPostFragment"
-        android:icon="@drawable/bg_circle_green_light"
+        android:icon="@drawable/ic_nav_create"
         android:title="Create Post"/>
 
     <item
         android:id="@+id/mapFragment"
-        android:icon="@drawable/bg_circle_green_light"
+        android:icon="@drawable/ic_nav_map"
         android:title="Map"/>
 
 

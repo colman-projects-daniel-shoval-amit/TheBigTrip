@@ -78,6 +78,14 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/postDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:textColor="#777777"
+                android:textSize="12sp" />
+
+            <TextView
                 android:id="@+id/postCaption"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

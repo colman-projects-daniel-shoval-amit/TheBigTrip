@@ -10,6 +10,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
 import com.bumptech.glide.Glide
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class PostAdapter(
     private val posts: List<Post>,
@@ -24,6 +27,7 @@ class PostAdapter(
 
         val location: TextView = view.findViewById(R.id.postLocation)
         val uploader: TextView = view.findViewById(R.id.postUploader)
+        val date: TextView = view.findViewById(R.id.postDate)
         val caption: TextView = view.findViewById(R.id.postCaption)
         val image: ImageView = view.findViewById(R.id.postImage)
         val actions: View = view.findViewById(R.id.postActions)
@@ -50,6 +54,7 @@ class PostAdapter(
             holder.uploader.visibility = View.VISIBLE
             holder.uploader.text = "Uploaded by ${userNames[post.userId] ?: post.userId}"
         }
+        holder.date.text = formatPostDate(post.createdAt)
         holder.caption.text = post.caption ?: ""
         holder.actions.visibility = if (showActions) View.VISIBLE else View.GONE
         holder.editButton.setOnClickListener { onEditClick?.invoke(post) }
@@ -63,4 +68,13 @@ class PostAdapter(
     }
 
     override fun getItemCount(): Int = posts.size
+
+    private fun formatPostDate(createdAt: Long): String {
+        if (createdAt <= 0) {
+            return "Published date unknown"
+        }
+
+        val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        return "Published ${formatter.format(Date(createdAt))}"
+    }
 }

@@ -2,6 +2,7 @@ package com.dsa.thebigtrip.posts
 
 import android.os.Bundle
 import android.view.View
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -16,12 +17,15 @@ import kotlinx.coroutines.launch
 class AllPostsFragment : Fragment(R.layout.fragment_my_posts) {
 
     private lateinit var recyclerView: RecyclerView
+    private lateinit var progressBar: ProgressBar
     private val postRepository = PostRepository.shared
     private val userRepository = UserRepository.shared
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         recyclerView = view.findViewById(R.id.postsRecyclerView)
+        progressBar = view.findViewById(R.id.postsProgressBar)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        setLoading(true)
         loadPosts()
         refreshPosts()
     }
@@ -34,6 +38,7 @@ class AllPostsFragment : Fragment(R.layout.fragment_my_posts) {
 
     private fun showPosts(posts: List<Post>) {
         lifecycleScope.launch {
+            setLoading(true)
             val userNames = posts
                 .map { it.userId }
                 .distinct()
@@ -43,16 +48,25 @@ class AllPostsFragment : Fragment(R.layout.fragment_my_posts) {
                 }
 
             recyclerView.adapter = PostAdapter(posts, userNames, showUploader = true)
+            setLoading(false)
         }
     }
 
     private fun refreshPosts() {
         lifecycleScope.launch {
             try {
+                setLoading(true)
                 postRepository.refreshPosts()
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Failed to refresh posts", Toast.LENGTH_SHORT).show()
+            } finally {
+                setLoading(false)
             }
         }
+    }
+
+    private fun setLoading(isLoading: Boolean) {
+        if (!::progressBar.isInitialized) return
+        progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
     }
 }
