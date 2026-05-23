@@ -29,6 +29,8 @@ import com.bumptech.glide.Glide
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.post.PostRepository
+import com.dsa.thebigtrip.data.user.User
+import com.dsa.thebigtrip.data.user.UserRepository
 import com.dsa.thebigtrip.databinding.FragmentCreatePostBinding
 import com.dsa.thebigtrip.utils.ImageUtil
 import com.google.android.gms.location.LocationServices
@@ -51,6 +53,7 @@ class CreatePostFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val repository = PostRepository.shared
+    private val userRepository = UserRepository.shared
 
     private var selectedImageUri: Uri? = null
     private var currentPost: Post? = null
@@ -58,6 +61,9 @@ class CreatePostFragment : Fragment() {
     private var selectedLongitude: Double? = null
     private var selectedPlaceName: String? = null
     private var suppressLocationSearch = false
+
+    private var allUsers: List<User> = emptyList()
+    private val selectedVisibleUserIds: MutableSet<String> = mutableSetOf()
     private var autocompleteSessionToken: AutocompleteSessionToken? = null
     private var locationPredictions: List<AutocompletePrediction> = emptyList()
     private var locationSearchRequestId = 0
@@ -98,7 +104,9 @@ class CreatePostFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         initializePlaces()
         setupListeners()
+        loadAllUsers()
         loadPostForEditIfNeeded()
+        updatePermissionsSummary()
     }
 
     private fun setupListeners() {
@@ -155,6 +163,11 @@ class CreatePostFragment : Fragment() {
             if (validateInput(title)) {
                 savePost(title, description)
             }
+        }
+
+        binding.selectPermissionsButton.setOnClickListener {
+            hideLocationSuggestions()
+            showPermissionPicker()
         }
 
         binding.titleInput.setOnFocusChangeListener { _, hasFocus ->
@@ -498,6 +511,10 @@ class CreatePostFragment : Fragment() {
                 if (!post.imageUrl.isNullOrEmpty()) {
                     showImagePreview(post.imageUrl)
                 }
+
+                selectedVisibleUserIds.clear()
+                selectedVisibleUserIds.addAll(post.visibleTo)
+                updatePermissionsSummary()
             } catch (e: Exception) {
                 Snackbar.make(binding.root, "Failed to load post", Snackbar.LENGTH_SHORT)
                     .setBackgroundTint("#ff4545".toColorInt())
@@ -566,7 +583,8 @@ class CreatePostFragment : Fragment() {
                     createdAt = System.currentTimeMillis(),
                     locationName = selectedPlaceName ?: description,
                     latitude = lat,
-                    longitude = lng
+                    longitude = lng,
+                    visibleTo = selectedVisibleUserIds.filter { it != uid }
                 )
 
                 repository.addPost(post)
@@ -618,7 +636,8 @@ class CreatePostFragment : Fragment() {
                     imageUrl = imageUrl,
                     locationName = selectedPlaceName ?: description,
                     latitude = lat,
-                    longitude = lng
+                    longitude = lng,
+                    visibleTo = selectedVisibleUserIds.filter { it != existingPost.userId }
                 )
 
                 repository.updatePost(updatedPost)
@@ -671,6 +690,69 @@ class CreatePostFragment : Fragment() {
         currentBinding.descriptionInput.isEnabled = !isLoading
         currentBinding.titleInput.isEnabled = !isLoading
         currentBinding.locationInput.isEnabled = !isLoading
+        currentBinding.selectPermissionsButton.isEnabled = !isLoading
+    }
+
+    private fun loadAllUsers() {
+        lifecycleScope.launch {
+            try {
+                allUsers = userRepository.getAllUsers()
+            } catch (e: Exception) {
+                allUsers = emptyList()
+            }
+        }
+    }
+
+    private fun showPermissionPicker() {
+        val ownerUid = FirebaseAuth.getInstance().currentUser?.uid
+        val candidates = allUsers.filter { it.uid != ownerUid }
+
+        if (candidates.isEmpty()) {
+            Toast.makeText(
+                requireContext(),
+                "No other users available to share with",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val labels = candidates.map { user ->
+            user.fullName?.takeIf { it.isNotBlank() }
+                ?: user.email?.takeIf { it.isNotBlank() }
+                ?: user.uid
+        }.toTypedArray()
+
+        val checked = BooleanArray(candidates.size) { index ->
+            selectedVisibleUserIds.contains(candidates[index].uid)
+        }
+
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Who can view this post")
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                val uid = candidates[which].uid
+                if (isChecked) {
+                    selectedVisibleUserIds.add(uid)
+                } else {
+                    selectedVisibleUserIds.remove(uid)
+                }
+            }
+            .setPositiveButton("Done") { _, _ ->
+                updatePermissionsSummary()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updatePermissionsSummary() {
+        val currentBinding = _binding ?: return
+        val ownerUid = FirebaseAuth.getInstance().currentUser?.uid
+        val sharedIds = selectedVisibleUserIds.filter { it != ownerUid }
+
+        currentBinding.permissionsSummary.text = when {
+            sharedIds.isEmpty() -> "Only you"
+            sharedIds.size == 1 -> "Shared with 1 user"
+            else -> "Shared with ${sharedIds.size} users"
+        }
     }
 
     override fun onDestroyView() {

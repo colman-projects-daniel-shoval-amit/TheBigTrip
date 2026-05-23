@@ -2,9 +2,12 @@ package com.dsa.thebigtrip.data.post
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.dsa.thebigtrip.data.StringListConverter
 import com.google.firebase.Timestamp
 
 @Entity
+@TypeConverters(StringListConverter::class)
 data class Post(
 
     @PrimaryKey
@@ -17,11 +20,17 @@ data class Post(
 
     val locationName: String?,
     val latitude: Double?,
-    val longitude: Double?
+    val longitude: Double?,
+
+    val visibleTo: List<String> = emptyList()
 
 ) {
 
-    constructor() : this("", "", null, null, 0, null, null, null)
+    constructor() : this("", "", null, null, 0, null, null, null, emptyList())
+
+    fun isVisibleTo(uid: String): Boolean {
+        return userId == uid || visibleTo.contains(uid)
+    }
 
     companion object {
 
@@ -35,6 +44,8 @@ data class Post(
         const val LATITUDE_KEY = "latitude"
         const val LONGITUDE_KEY = "longitude"
 
+        const val VISIBLE_TO_KEY = "visibleTo"
+
         fun fromJson(json: Map<String, Any?>): Post? {
 
             val id = json[ID_KEY] as? String ?: return null
@@ -47,6 +58,10 @@ data class Post(
             val latitude = parseDouble(json[LATITUDE_KEY])
             val longitude = parseDouble(json[LONGITUDE_KEY])
 
+            val visibleTo = (json[VISIBLE_TO_KEY] as? List<*>)
+                ?.mapNotNull { it as? String }
+                .orEmpty()
+
             return Post(
                 id = id,
                 userId = userId,
@@ -55,7 +70,8 @@ data class Post(
                 createdAt = createdAt,
                 locationName = locationName,
                 latitude = latitude,
-                longitude = longitude
+                longitude = longitude,
+                visibleTo = visibleTo
             )
         }
 
@@ -91,6 +107,7 @@ data class Post(
             CREATED_AT_KEY to createdAt,
             LOCATION_NAME_KEY to locationName,
             LATITUDE_KEY to latitude,
-            LONGITUDE_KEY to longitude
+            LONGITUDE_KEY to longitude,
+            VISIBLE_TO_KEY to visibleTo
         )
 }
