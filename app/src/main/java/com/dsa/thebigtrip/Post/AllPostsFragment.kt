@@ -12,6 +12,7 @@ import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.post.PostRepository
 import com.dsa.thebigtrip.data.user.UserRepository
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 class AllPostsFragment : Fragment(R.layout.fragment_my_posts) {
@@ -32,7 +33,13 @@ class AllPostsFragment : Fragment(R.layout.fragment_my_posts) {
 
     private fun loadPosts() {
         postRepository.getAllPosts().observe(viewLifecycleOwner) { posts ->
-            showPosts(posts)
+            val currentUid = FirebaseAuth.getInstance().currentUser?.uid
+            val visiblePosts = if (currentUid == null) {
+                emptyList()
+            } else {
+                posts.filter { it.isVisibleTo(currentUid) }
+            }
+            showPosts(visiblePosts)
         }
     }
 

@@ -19,6 +19,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.post.PostRepository
+import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -108,12 +109,19 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private fun observePostsAndAddMarkers() {
         repository.getAllPosts().observe(viewLifecycleOwner) { posts ->
 
-            cachedPosts = posts
+            val currentUid = FirebaseAuth.getInstance().currentUser?.uid
+            val visiblePosts = if (currentUid == null) {
+                emptyList()
+            } else {
+                posts.filter { it.isVisibleTo(currentUid) }
+            }
+
+            cachedPosts = visiblePosts
 
             googleMap.clear()
             val positions = mutableListOf<LatLng>()
 
-            val locationGroups = posts
+            val locationGroups = visiblePosts
                 .filter { it.latitude != null && it.longitude != null }
                 .groupBy { getLocationGroupKey(it.latitude!!, it.longitude!!) }
 
