@@ -20,7 +20,8 @@ class PostAdapter(
     private val showUploader: Boolean = false,
     private val showActions: Boolean = false,
     private val onEditClick: ((Post) -> Unit)? = null,
-    private val onDeleteClick: ((Post) -> Unit)? = null
+    private val onDeleteClick: ((Post) -> Unit)? = null,
+    private val onManagePermissionsClick: ((Post) -> Unit)? = null
 ) : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
 
     class PostViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -32,6 +33,7 @@ class PostAdapter(
         val image: ImageView = view.findViewById(R.id.postImage)
         val actions: View = view.findViewById(R.id.postActions)
         val editButton: ImageButton = view.findViewById(R.id.btnEditPost)
+        val manageButton: ImageButton = view.findViewById(R.id.btnManagePermissions)
         val deleteButton: ImageButton = view.findViewById(R.id.btnDeletePost)
     }
 
@@ -58,6 +60,7 @@ class PostAdapter(
         holder.caption.text = post.caption ?: ""
         holder.actions.visibility = if (showActions) View.VISIBLE else View.GONE
         holder.editButton.setOnClickListener { onEditClick?.invoke(post) }
+        holder.manageButton.setOnClickListener { onManagePermissionsClick?.invoke(post) }
         holder.deleteButton.setOnClickListener { onDeleteClick?.invoke(post) }
 
         Glide.with(holder.itemView.context)

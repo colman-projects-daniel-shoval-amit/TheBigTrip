@@ -13,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.post.PostRepository
+import com.dsa.thebigtrip.data.user.User
+import com.dsa.thebigtrip.data.user.UserRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -21,13 +23,16 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
     private val repository = PostRepository.shared
+    private val userRepository = UserRepository.shared
     private val auth = FirebaseAuth.getInstance()
+    private var allUsers: List<User> = emptyList()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         recyclerView = view.findViewById(R.id.postsRecyclerView)
         progressBar = view.findViewById(R.id.postsProgressBar)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         setLoading(true)
+        loadAllUsers()
         loadPosts()
         refreshPosts()
     }
@@ -47,8 +52,19 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
                 posts = posts,
                 showActions = true,
                 onEditClick = { post -> openEditPost(post) },
-                onDeleteClick = { post -> confirmDeletePost(post) }
+                onDeleteClick = { post -> confirmDeletePost(post) },
+                onManagePermissionsClick = { post -> showManagePermissionsDialog(post) }
             )
+        }
+    }
+
+    private fun loadAllUsers() {
+        lifecycleScope.launch {
+            try {
+                allUsers = userRepository.getAllUsers()
+            } catch (e: Exception) {
+                allUsers = emptyList()
+            }
         }
     }
 
@@ -77,6 +93,58 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
                 Toast.makeText(requireContext(), "Post deleted", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(requireContext(), "Failed to delete post", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showManagePermissionsDialog(post: Post) {
+        val candidates = allUsers.filter { it.uid != post.userId }
+
+        if (candidates.isEmpty()) {
+            Toast.makeText(
+                requireContext(),
+                "No other users available to share with",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val labels = candidates.map { user ->
+            user.fullName?.takeIf { it.isNotBlank() }
+                ?: user.email?.takeIf { it.isNotBlank() }
+                ?: user.uid
+        }.toTypedArray()
+
+        val selectedIds = post.visibleTo.toMutableSet()
+        val checked = BooleanArray(candidates.size) { index ->
+            selectedIds.contains(candidates[index].uid)
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Who can view this post")
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                val uid = candidates[which].uid
+                if (isChecked) {
+                    selectedIds.add(uid)
+                } else {
+                    selectedIds.remove(uid)
+                }
+            }
+            .setPositiveButton("Save") { _, _ ->
+                savePermissions(post, selectedIds.toList())
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun savePermissions(post: Post, visibleTo: List<String>) {
+        lifecycleScope.launch {
+            try {
+                val updated = post.copy(visibleTo = visibleTo.filter { it != post.userId })
+                repository.updatePost(updated)
+                Toast.makeText(requireContext(), "Permissions updated", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "Failed to update permissions", Toast.LENGTH_SHORT).show()
             }
         }
     }
