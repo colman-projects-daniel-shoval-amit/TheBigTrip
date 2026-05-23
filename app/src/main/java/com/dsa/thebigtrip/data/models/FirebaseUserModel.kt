@@ -32,6 +32,22 @@ class FirebaseUserModel {
         }
     }
 
+    suspend fun getAllUsers(): List<User> {
+        val result = db.collection(USERS)
+            .get()
+            .await()
+
+        return result.documents.mapNotNull { doc ->
+            doc.data?.let {
+                try {
+                    User.fromJson(it)
+                } catch (e: Exception) {
+                    null
+                }
+            }
+        }
+    }
+
     suspend fun updateUser(user: User) {
         db.collection(USERS)
             .document(user.uid)

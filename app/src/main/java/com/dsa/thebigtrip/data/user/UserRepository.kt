@@ -50,4 +50,12 @@ class UserRepository {
         }
     }
 
+    suspend fun getAllUsers(): List<User> {
+        val users = firebaseUserModel.getAllUsers()
+        withContext(Dispatchers.IO) {
+            users.forEach { userDao.insert(it) }
+        }
+        return users
+    }
+
 }
