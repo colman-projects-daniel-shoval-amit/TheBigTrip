@@ -1,9 +1,10 @@
 package com.dsa.thebigtrip.utils
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.widget.ImageView
 import com.google.firebase.Firebase
-import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.storage
 import com.squareup.picasso.Picasso
 import kotlinx.coroutines.tasks.await
@@ -40,6 +41,21 @@ object ImageUtil {
      */
     suspend fun uploadUserProfileImage(image: Bitmap, uid: String): String? {
         return uploadImage(image, "images/users/$uid/profile.jpg")
+    }
+
+    suspend fun uploadPostImage(context: Context, imageUri: Uri, postId: String): String? {
+        return try {
+            val ref = storage.reference.child("images/posts/$postId.jpg")
+            val stream = context.contentResolver.openInputStream(imageUri) ?: return null
+
+            stream.use {
+                ref.putStream(it).await()
+            }
+
+            ref.downloadUrl.await().toString()
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /**

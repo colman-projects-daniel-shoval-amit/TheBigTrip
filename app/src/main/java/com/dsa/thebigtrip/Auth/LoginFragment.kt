@@ -3,6 +3,7 @@ package com.dsa.thebigtrip.Auth
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,10 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 
 class LoginFragment : Fragment() {
+
+    private companion object {
+        const val TAG = "LoginFragment"
+    }
 
     private var _binding: FragmentLoginBinding? = null
     private val binding get() = _binding!!
@@ -105,6 +110,7 @@ class LoginFragment : Fragment() {
 
                     (activity as? AuthActivity)?.navigateToMain()
                 } else {
+                    Log.e(TAG, "Login failed", task.exception)
                     val errorMessage = when {
                         task.exception?.message?.contains("no user record") == true ->
                             "No account found with this email"

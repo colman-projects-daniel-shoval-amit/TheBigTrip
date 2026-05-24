@@ -1,22 +1,39 @@
 package com.dsa.thebigtrip.data
 
-import androidx.room.Database
+import android.content.Context
 import androidx.room.Room
-import androidx.room.RoomDatabase
 import com.dsa.thebigtrip.base.TheBigTrip
 
 object AppLocalDb {
-    val db: AppLocalDbRepository by lazy {
 
+    private const val DB_NAME = "thebigtrip.db"
+
+    val db: AppLocalDbRepository by lazy {
         val context = TheBigTrip.appContext
             ?: throw IllegalStateException("Context is null")
+        build(context)
+    }
 
-        Room.databaseBuilder(
-            context = context,
-            klass = AppLocalDbRepository::class.java,
-            name = "thebigtrip.db"
-        )
-            .fallbackToDestructiveMigration()
-            .build()
+    private fun build(context: Context): AppLocalDbRepository {
+        return try {
+            val database = Room.databaseBuilder(
+                context = context,
+                klass = AppLocalDbRepository::class.java,
+                name = DB_NAME
+            )
+                .fallbackToDestructiveMigration()
+                .build()
+            database.openHelper.writableDatabase
+            database
+        } catch (e: Exception) {
+            context.deleteDatabase(DB_NAME)
+            Room.databaseBuilder(
+                context = context,
+                klass = AppLocalDbRepository::class.java,
+                name = DB_NAME
+            )
+                .fallbackToDestructiveMigration()
+                .build()
+        }
     }
 }

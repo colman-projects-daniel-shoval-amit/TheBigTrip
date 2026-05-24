@@ -22,8 +22,6 @@ class AuthActivity : AppCompatActivity() {
         Log.d("TAG", "HERE ")
 
         auth = FirebaseAuth.getInstance()
-        //for Testing add this shit if not we need to register the app
-        auth.firebaseAuthSettings.setAppVerificationDisabledForTesting(true)
         // If user is already signed in, navigate to main activity
         val user = auth.currentUser
 

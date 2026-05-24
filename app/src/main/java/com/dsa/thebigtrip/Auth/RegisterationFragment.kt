@@ -150,6 +150,7 @@ class RegisterFragment : Fragment() {
                 (activity as? AuthActivity)?.navigateToMain()
 
             } catch (e: Exception) {
+                Log.e("RegisterFragment", "Registration failed", e)
                 val errorMessage = when {
                     e.message?.contains("email address is already") == true ->
                         "An account with this email already exists"

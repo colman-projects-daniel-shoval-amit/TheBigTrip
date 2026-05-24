@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-
     <item
-        android:id="@+id/profileFragment"
-        android:icon="@drawable/bg_circle_green_light"
-        android:title="Profile"/>
+        android:id="@+id/mapFragment"
+        android:icon="@drawable/ic_nav_map"
+        android:title="Map"/>
 
     <item
         android:id="@+id/myPostsFragment"
-        android:icon="@drawable/bg_circle_green_light"
+        android:icon="@drawable/ic_nav_my_posts"
         android:title="My Posts"/>
 
     <item
+        android:id="@+id/allPostsFragment"
+        android:icon="@drawable/ic_nav_all_posts"
+        android:title="All Posts"/>
+
+    <item
         android:id="@+id/createPostFragment"
-        android:icon="@drawable/bg_circle_green_light"
+        android:icon="@drawable/ic_nav_create"
         android:title="Create Post"/>
 
     <item
-        android:id="@+id/mapFragment"
-        android:icon="@drawable/bg_circle_green_light"
-        android:title="Map"/>
-
-
-
+        android:id="@+id/profileFragment"
+        android:icon="@drawable/ic_nav_profile"
+        android:title="Profile"/>
 
 </menu>
