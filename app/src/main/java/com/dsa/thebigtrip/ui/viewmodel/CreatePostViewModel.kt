@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.dsa.thebigtrip.data.WeatherUtil
 import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.post.PostRepository
 import com.dsa.thebigtrip.data.user.User
@@ -52,6 +53,7 @@ class CreatePostViewModel(application: Application) : AndroidViewModel(applicati
     fun publishPost(
         uid: String,
         title: String,
+        description: String,
         imageUri: Uri?,
         locationName: String,
         latitude: Double,
@@ -70,15 +72,19 @@ class CreatePostViewModel(application: Application) : AndroidViewModel(applicati
                         ?: throw IllegalStateException("Failed to upload image")
                 }
 
+                val weather = WeatherUtil.fetchWeather(latitude, longitude)
+
                 val post = Post(
                     id = postId,
                     userId = uid,
                     caption = title,
+                    description = description.ifBlank { null },
                     imageUrl = imageUrl,
                     createdAt = System.currentTimeMillis(),
                     locationName = locationName,
                     latitude = latitude,
                     longitude = longitude,
+                    weather = weather,
                     visibleTo = visibleTo.filter { it != uid }
                 )
 
@@ -96,6 +102,7 @@ class CreatePostViewModel(application: Application) : AndroidViewModel(applicati
         existingPost: Post,
         uid: String,
         title: String,
+        description: String,
         imageUri: Uri?,
         locationName: String,
         latitude: Double,
@@ -117,12 +124,24 @@ class CreatePostViewModel(application: Application) : AndroidViewModel(applicati
                         ?: throw IllegalStateException("Failed to upload image")
                 } ?: existingPost.imageUrl
 
+                val weather = if (
+                    existingPost.weather != null &&
+                    existingPost.latitude == latitude &&
+                    existingPost.longitude == longitude
+                ) {
+                    existingPost.weather
+                } else {
+                    WeatherUtil.fetchWeather(latitude, longitude)
+                }
+
                 val updatedPost = existingPost.copy(
                     caption = title,
+                    description = description.ifBlank { null },
                     imageUrl = imageUrl,
                     locationName = locationName,
                     latitude = latitude,
                     longitude = longitude,
+                    weather = weather,
                     visibleTo = visibleTo.filter { it != existingPost.userId }
                 )
 

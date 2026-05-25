@@ -511,7 +511,7 @@ class CreatePostFragment : Fragment() {
         binding.createPostMainTitle.text = "Edit Post"
         binding.publishButton.text = "Save Changes"
         binding.titleInput.setText(post.caption ?: "")
-        binding.descriptionInput.setText(post.locationName ?: "")
+        binding.descriptionInput.setText(post.description ?: "")
 
         if (post.latitude != null && post.longitude != null) {
             selectedLatitude = post.latitude
@@ -572,8 +572,9 @@ class CreatePostFragment : Fragment() {
         viewModel.publishPost(
             uid = uid,
             title = title,
+            description = description,
             imageUri = selectedImageUri,
-            locationName = selectedPlaceName ?: description,
+            locationName = selectedPlaceName.orEmpty(),
             latitude = lat,
             longitude = lng,
             visibleTo = selectedVisibleUserIds.toList(),
@@ -605,8 +606,9 @@ class CreatePostFragment : Fragment() {
             existingPost = existingPost,
             uid = uid,
             title = title,
+            description = description,
             imageUri = selectedImageUri,
-            locationName = selectedPlaceName ?: description,
+            locationName = selectedPlaceName.orEmpty(),
             latitude = lat,
             longitude = lng,
             visibleTo = selectedVisibleUserIds.toList(),
