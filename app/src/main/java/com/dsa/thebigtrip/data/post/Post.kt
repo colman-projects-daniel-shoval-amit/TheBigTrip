@@ -22,11 +22,13 @@ data class Post(
     val latitude: Double?,
     val longitude: Double?,
 
+    val description: String? = null,
+    val weather: String? = null,
     val visibleTo: List<String> = emptyList()
 
 ) {
 
-    constructor() : this("", "", null, null, 0, null, null, null, emptyList())
+    constructor() : this("", "", null, null, 0, null, null, null, null, null, emptyList())
 
     fun isVisibleTo(uid: String): Boolean {
         return userId == uid || visibleTo.contains(uid)
@@ -39,11 +41,11 @@ data class Post(
         const val CAPTION_KEY = "caption"
         const val IMAGE_URL_KEY = "imageUrl"
         const val CREATED_AT_KEY = "createdAt"
-
         const val LOCATION_NAME_KEY = "locationName"
         const val LATITUDE_KEY = "latitude"
         const val LONGITUDE_KEY = "longitude"
-
+        const val DESCRIPTION_KEY = "description"
+        const val WEATHER_KEY = "weather"
         const val VISIBLE_TO_KEY = "visibleTo"
 
         fun fromJson(json: Map<String, Any?>): Post? {
@@ -58,6 +60,9 @@ data class Post(
             val latitude = parseDouble(json[LATITUDE_KEY])
             val longitude = parseDouble(json[LONGITUDE_KEY])
 
+            val description = json[DESCRIPTION_KEY] as? String
+            val weather = json[WEATHER_KEY] as? String
+
             val visibleTo = (json[VISIBLE_TO_KEY] as? List<*>)
                 ?.mapNotNull { it as? String }
                 .orEmpty()
@@ -71,6 +76,8 @@ data class Post(
                 locationName = locationName,
                 latitude = latitude,
                 longitude = longitude,
+                description = description,
+                weather = weather,
                 visibleTo = visibleTo
             )
         }
@@ -108,6 +115,8 @@ data class Post(
             LOCATION_NAME_KEY to locationName,
             LATITUDE_KEY to latitude,
             LONGITUDE_KEY to longitude,
+            DESCRIPTION_KEY to description,
+            WEATHER_KEY to weather,
             VISIBLE_TO_KEY to visibleTo
         )
 }
