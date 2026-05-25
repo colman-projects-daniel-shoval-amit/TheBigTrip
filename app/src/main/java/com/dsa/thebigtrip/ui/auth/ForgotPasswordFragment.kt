@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.Auth
+package com.dsa.thebigtrip.ui.auth
 
 
 import android.os.Bundle

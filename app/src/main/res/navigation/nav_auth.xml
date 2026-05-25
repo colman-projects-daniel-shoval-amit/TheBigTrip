@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.dsa.thebigtrip.Auth.LoginFragment"
+        android:name="com.dsa.thebigtrip.ui.auth.LoginFragment"
         android:label="Login">
 
         <action
@@ -29,7 +29,7 @@
 
     <fragment
         android:id="@+id/registerFragment"
-        android:name="com.dsa.thebigtrip.Auth.RegisterFragment"
+        android:name="com.dsa.thebigtrip.ui.auth.RegisterFragment"
         android:label="Register">
 
         <action
@@ -38,7 +38,7 @@
     </fragment>
     <fragment
         android:id="@+id/forgotPasswordFragment"
-        android:name="com.dsa.thebigtrip.Auth.ForgotPasswordFragment"
+        android:name="com.dsa.thebigtrip.ui.auth.ForgotPasswordFragment"
         android:label="Forgot Password"
         tools:layout="@layout/fragment_forgot_password" />
 

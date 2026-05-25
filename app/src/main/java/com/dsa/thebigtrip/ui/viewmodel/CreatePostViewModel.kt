@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.viewmodel
+package com.dsa.thebigtrip.ui.viewmodel
 
 import android.app.Application
 import android.net.Uri

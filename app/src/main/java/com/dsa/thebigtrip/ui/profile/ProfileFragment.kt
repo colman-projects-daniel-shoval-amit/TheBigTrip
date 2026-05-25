@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.fragments
+package com.dsa.thebigtrip.ui.profile
 
 import android.content.Intent
 import android.os.Bundle
@@ -11,13 +11,13 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import com.dsa.thebigtrip.Auth.AuthActivity
+import com.dsa.thebigtrip.ui.auth.AuthActivity
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.user.User
 import com.dsa.thebigtrip.databinding.FragmentProfileBinding
 import com.dsa.thebigtrip.utils.ImageUtil
 import com.dsa.thebigtrip.utils.bitmap
-import com.dsa.thebigtrip.viewmodel.ProfileViewModel
+import com.dsa.thebigtrip.ui.viewmodel.ProfileViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 class ProfileFragment : Fragment() {

@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.posts
+package com.dsa.thebigtrip.ui.posts
 
 import android.view.LayoutInflater
 import android.view.View

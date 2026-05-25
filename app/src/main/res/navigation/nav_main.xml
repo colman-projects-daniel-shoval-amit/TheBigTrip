@@ -6,12 +6,12 @@
 
     <fragment
         android:id="@+id/profileFragment"
-        android:name="com.dsa.thebigtrip.fragments.ProfileFragment"
+        android:name="com.dsa.thebigtrip.ui.profile.ProfileFragment"
         android:label="Profile" />
 
     <fragment
         android:id="@+id/myPostsFragment"
-        android:name="com.dsa.thebigtrip.posts.MyPostsFragment"
+        android:name="com.dsa.thebigtrip.ui.posts.MyPostsFragment"
         android:label="My Posts">
 
         <action
@@ -21,12 +21,12 @@
 
     <fragment
         android:id="@+id/allPostsFragment"
-        android:name="com.dsa.thebigtrip.posts.AllPostsFragment"
+        android:name="com.dsa.thebigtrip.ui.posts.AllPostsFragment"
         android:label="All Posts" />
 
     <fragment
         android:id="@+id/createPostFragment"
-        android:name="com.dsa.thebigtrip.Post.CreatePostFragment"
+        android:name="com.dsa.thebigtrip.ui.posts.CreatePostFragment"
         android:label="Create Post">
 
         <argument
@@ -38,7 +38,7 @@
 
     <fragment
         android:id="@+id/mapFragment"
-        android:name="com.dsa.thebigtrip.MapFragment"
+        android:name="com.dsa.thebigtrip.ui.map.MapFragment"
         android:label="Map" />
 
 
