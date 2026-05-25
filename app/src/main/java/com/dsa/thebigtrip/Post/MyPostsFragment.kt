@@ -69,10 +69,9 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
     }
 
     private fun openEditPost(post: Post) {
-        val args = Bundle().apply {
-            putString("postId", post.id)
-        }
-        findNavController().navigate(R.id.createPostFragment, args)
+        val action = MyPostsFragmentDirections
+            .actionMyPostsFragmentToCreatePostFragment(post.id)
+        findNavController().navigate(action)
     }
 
     private fun confirmDeletePost(post: Post) {

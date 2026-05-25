@@ -25,6 +25,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
@@ -51,6 +52,7 @@ class CreatePostFragment : Fragment() {
 
     private var _binding: FragmentCreatePostBinding? = null
     private val binding get() = _binding!!
+    private val args: CreatePostFragmentArgs by navArgs()
 
     private val repository = PostRepository.shared
     private val userRepository = UserRepository.shared
@@ -487,7 +489,7 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun loadPostForEditIfNeeded() {
-        val postId = arguments?.getString("postId") ?: return
+        val postId = args.postId ?: return
 
         setLoading(true)
 
