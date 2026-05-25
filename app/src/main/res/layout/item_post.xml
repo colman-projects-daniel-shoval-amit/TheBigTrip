@@ -96,6 +96,15 @@
                 android:textSize="12sp" />
 
             <TextView
+                android:id="@+id/postWeather"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:textColor="#2E7D32"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
                 android:id="@+id/postCaption"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

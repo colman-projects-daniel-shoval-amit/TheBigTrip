@@ -17,6 +17,7 @@ import java.util.Locale
 class PostAdapter(
     private val posts: List<Post>,
     private val userNames: Map<String, String> = emptyMap(),
+    initialWeatherSummaries: Map<String, String> = emptyMap(),
     private val showUploader: Boolean = false,
     private val showActions: Boolean = false,
     private val onEditClick: ((Post) -> Unit)? = null,
@@ -24,11 +25,14 @@ class PostAdapter(
     private val onManagePermissionsClick: ((Post) -> Unit)? = null
 ) : RecyclerView.Adapter<PostAdapter.PostViewHolder>() {
 
+    private val weatherSummaries = initialWeatherSummaries.toMutableMap()
+
     class PostViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 
         val location: TextView = view.findViewById(R.id.postLocation)
         val uploader: TextView = view.findViewById(R.id.postUploader)
         val date: TextView = view.findViewById(R.id.postDate)
+        val weather: TextView = view.findViewById(R.id.postWeather)
         val caption: TextView = view.findViewById(R.id.postCaption)
         val image: ImageView = view.findViewById(R.id.postImage)
         val actions: View = view.findViewById(R.id.postActions)
@@ -57,6 +61,7 @@ class PostAdapter(
             holder.uploader.text = "Uploaded by ${userNames[post.userId] ?: post.userId}"
         }
         holder.date.text = formatPostDate(post.createdAt)
+        holder.weather.text = getWeatherText(post)
         holder.caption.text = post.caption ?: ""
         holder.actions.visibility = if (showActions) View.VISIBLE else View.GONE
         holder.editButton.setOnClickListener { onEditClick?.invoke(post) }
@@ -71,6 +76,22 @@ class PostAdapter(
     }
 
     override fun getItemCount(): Int = posts.size
+
+    fun updateWeather(postId: String, summary: String) {
+        weatherSummaries[postId] = summary
+        val index = posts.indexOfFirst { it.id == postId }
+        if (index >= 0) {
+            notifyItemChanged(index)
+        }
+    }
+
+    private fun getWeatherText(post: Post): String {
+        if (post.latitude == null || post.longitude == null || post.createdAt <= 0) {
+            return "Weather unavailable"
+        }
+
+        return weatherSummaries[post.id] ?: "Weather loading..."
+    }
 
     private fun formatPostDate(createdAt: Long): String {
         if (createdAt <= 0) {

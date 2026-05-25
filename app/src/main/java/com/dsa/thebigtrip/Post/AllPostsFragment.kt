@@ -12,6 +12,7 @@ import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.post.PostRepository
 import com.dsa.thebigtrip.data.user.UserRepository
+import com.dsa.thebigtrip.data.weather.WeatherRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -21,6 +22,10 @@ class AllPostsFragment : Fragment(R.layout.fragment_my_posts) {
     private lateinit var progressBar: ProgressBar
     private val postRepository = PostRepository.shared
     private val userRepository = UserRepository.shared
+    private val weatherRepository = WeatherRepository.shared
+    private val weatherSummaries = mutableMapOf<String, String>()
+    private val weatherLoadingPostIds = mutableSetOf<String>()
+    private var postAdapter: PostAdapter? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         recyclerView = view.findViewById(R.id.postsRecyclerView)
@@ -54,9 +59,40 @@ class AllPostsFragment : Fragment(R.layout.fragment_my_posts) {
                     user?.fullName ?: user?.email ?: userId
                 }
 
-            recyclerView.adapter = PostAdapter(posts, userNames, showUploader = true)
+            postAdapter = PostAdapter(
+                posts = posts,
+                userNames = userNames,
+                initialWeatherSummaries = weatherSummaries,
+                showUploader = true
+            )
+            recyclerView.adapter = postAdapter
+            loadWeatherForPosts(posts)
             setLoading(false)
         }
+    }
+
+    private fun loadWeatherForPosts(posts: List<Post>) {
+        posts
+            .filter { post ->
+                post.latitude != null &&
+                        post.longitude != null &&
+                        !weatherSummaries.containsKey(post.id) &&
+                        !weatherLoadingPostIds.contains(post.id)
+            }
+            .forEach { post ->
+                weatherLoadingPostIds.add(post.id)
+                lifecycleScope.launch {
+                    val summary = try {
+                        weatherRepository.getWeatherSummary(post)
+                    } catch (e: Exception) {
+                        "Weather unavailable"
+                    }
+
+                    weatherSummaries[post.id] = summary
+                    weatherLoadingPostIds.remove(post.id)
+                    postAdapter?.updateWeather(post.id, summary)
+                }
+            }
     }
 
     private fun refreshPosts() {
