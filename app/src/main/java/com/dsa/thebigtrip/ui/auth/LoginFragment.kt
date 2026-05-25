@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.Auth
+package com.dsa.thebigtrip.ui.auth
 
 import android.content.Intent
 import android.graphics.Color
@@ -12,7 +12,7 @@ import android.widget.Toast
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.dsa.thebigtrip.MainActivity
+import com.dsa.thebigtrip.ui.main.MainActivity
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.databinding.FragmentLoginBinding
 import com.google.android.material.snackbar.Snackbar

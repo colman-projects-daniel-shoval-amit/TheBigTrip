@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.Post
+package com.dsa.thebigtrip.ui.posts
 
 import android.Manifest
 import android.content.Context
@@ -31,7 +31,7 @@ import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
 import com.dsa.thebigtrip.data.user.User
 import com.dsa.thebigtrip.databinding.FragmentCreatePostBinding
-import com.dsa.thebigtrip.viewmodel.CreatePostViewModel
+import com.dsa.thebigtrip.ui.viewmodel.CreatePostViewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource

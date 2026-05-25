@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.viewmodel
+package com.dsa.thebigtrip.ui.viewmodel
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

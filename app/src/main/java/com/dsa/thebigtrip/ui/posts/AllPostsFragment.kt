@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.posts
+package com.dsa.thebigtrip.ui.posts
 
 import android.os.Bundle
 import android.view.View
@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
-import com.dsa.thebigtrip.viewmodel.PostsViewModel
+import com.dsa.thebigtrip.ui.viewmodel.PostsViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 class AllPostsFragment : Fragment(R.layout.fragment_my_posts) {
