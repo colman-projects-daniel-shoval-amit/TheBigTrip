@@ -85,6 +85,12 @@ class PostAdapter(
         }
     }
 
+    fun updateWeatherSummaries(summaries: Map<String, String>) {
+        weatherSummaries.clear()
+        weatherSummaries.putAll(summaries)
+        notifyDataSetChanged()
+    }
+
     private fun getWeatherText(post: Post): String {
         if (post.latitude == null || post.longitude == null || post.createdAt <= 0) {
             return "Weather unavailable"

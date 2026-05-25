@@ -16,9 +16,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.viewModels
 import com.dsa.thebigtrip.data.post.Post
-import com.dsa.thebigtrip.data.post.PostRepository
+import com.dsa.thebigtrip.viewmodel.MapViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -28,7 +28,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
 import com.squareup.picasso.Picasso
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -45,7 +44,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private lateinit var previewLocation: TextView
     private lateinit var closePreview: TextView
 
-    private val repository = PostRepository.shared
+    private val viewModel: MapViewModel by viewModels()
     private var cachedPosts: List<Post> = emptyList()
     private var markerPositions: List<LatLng> = emptyList()
     private var isMapLoaded = false
@@ -107,7 +106,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun observePostsAndAddMarkers() {
-        repository.getAllPosts().observe(viewLifecycleOwner) { posts ->
+        viewModel.posts.observe(viewLifecycleOwner) { posts ->
 
             val currentUid = FirebaseAuth.getInstance().currentUser?.uid
             val visiblePosts = if (currentUid == null) {
@@ -314,12 +313,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun refreshPosts() {
-        lifecycleScope.launch {
-            try {
-                repository.refreshPosts()
-            } catch (e: Exception) {
+        viewModel.refreshPosts {
                 Toast.makeText(requireContext(), "Failed to refresh map posts", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 

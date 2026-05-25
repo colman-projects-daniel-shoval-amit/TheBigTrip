@@ -6,30 +6,23 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
-import com.dsa.thebigtrip.data.post.PostRepository
 import com.dsa.thebigtrip.data.user.User
-import com.dsa.thebigtrip.data.user.UserRepository
-import com.dsa.thebigtrip.data.weather.WeatherRepository
+import com.dsa.thebigtrip.viewmodel.PostsViewModel
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.launch
 
 class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var progressBar: ProgressBar
-    private val repository = PostRepository.shared
-    private val userRepository = UserRepository.shared
-    private val weatherRepository = WeatherRepository.shared
+    private val viewModel: PostsViewModel by viewModels()
     private val auth = FirebaseAuth.getInstance()
     private var allUsers: List<User> = emptyList()
-    private val weatherSummaries = mutableMapOf<String, String>()
-    private val weatherLoadingPostIds = mutableSetOf<String>()
     private var postAdapter: PostAdapter? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -38,6 +31,7 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         setLoading(true)
         loadAllUsers()
+        observeWeather()
         loadPosts()
         refreshPosts()
     }
@@ -51,53 +45,32 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
             return
         }
 
-        repository.getPostsByUserId(uid).observe(viewLifecycleOwner) { posts ->
+        viewModel.getPostsByUserId(uid).observe(viewLifecycleOwner) { posts ->
             setLoading(false)
             postAdapter = PostAdapter(
                 posts = posts,
-                initialWeatherSummaries = weatherSummaries,
+                initialWeatherSummaries = viewModel.weatherSummaries.value.orEmpty(),
                 showActions = true,
                 onEditClick = { post -> openEditPost(post) },
                 onDeleteClick = { post -> confirmDeletePost(post) },
                 onManagePermissionsClick = { post -> showManagePermissionsDialog(post) }
             )
             recyclerView.adapter = postAdapter
-            loadWeatherForPosts(posts)
+            viewModel.loadWeatherForPosts(posts)
         }
     }
 
-    private fun loadWeatherForPosts(posts: List<Post>) {
-        posts
-            .filter { post ->
-                post.latitude != null &&
-                        post.longitude != null &&
-                        !weatherSummaries.containsKey(post.id) &&
-                        !weatherLoadingPostIds.contains(post.id)
-            }
-            .forEach { post ->
-                weatherLoadingPostIds.add(post.id)
-                lifecycleScope.launch {
-                    val summary = try {
-                        weatherRepository.getWeatherSummary(post)
-                    } catch (e: Exception) {
-                        "Weather unavailable"
-                    }
-
-                    weatherSummaries[post.id] = summary
-                    weatherLoadingPostIds.remove(post.id)
-                    postAdapter?.updateWeather(post.id, summary)
-                }
-            }
+    private fun observeWeather() {
+        viewModel.weatherSummaries.observe(viewLifecycleOwner) { summaries ->
+            postAdapter?.updateWeatherSummaries(summaries)
+        }
     }
 
     private fun loadAllUsers() {
-        lifecycleScope.launch {
-            try {
-                allUsers = userRepository.getAllUsers()
-            } catch (e: Exception) {
-                allUsers = emptyList()
-            }
+        viewModel.allUsers.observe(viewLifecycleOwner) { users ->
+            allUsers = users
         }
+        viewModel.loadAllUsers()
     }
 
     private fun openEditPost(post: Post) {
@@ -118,14 +91,15 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
     }
 
     private fun deletePost(post: Post) {
-        lifecycleScope.launch {
-            try {
-                repository.deletePost(post.id)
+        viewModel.deletePost(
+            postId = post.id,
+            onSuccess = {
                 Toast.makeText(requireContext(), "Post deleted", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
+            },
+            onError = {
                 Toast.makeText(requireContext(), "Failed to delete post", Toast.LENGTH_SHORT).show()
             }
-        }
+        )
     }
 
     private fun showManagePermissionsDialog(post: Post) {
@@ -169,28 +143,28 @@ class MyPostsFragment : Fragment(R.layout.fragment_my_posts) {
     }
 
     private fun savePermissions(post: Post, visibleTo: List<String>) {
-        lifecycleScope.launch {
-            try {
-                val updated = post.copy(visibleTo = visibleTo.filter { it != post.userId })
-                repository.updatePost(updated)
+        val updated = post.copy(visibleTo = visibleTo.filter { it != post.userId })
+        viewModel.updatePost(
+            post = updated,
+            onSuccess = {
                 Toast.makeText(requireContext(), "Permissions updated", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
+            },
+            onError = {
                 Toast.makeText(requireContext(), "Failed to update permissions", Toast.LENGTH_SHORT).show()
             }
-        }
+        )
     }
 
     private fun refreshPosts() {
-        lifecycleScope.launch {
-            try {
-                setLoading(true)
-                repository.refreshPosts()
-            } catch (e: Exception) {
+        setLoading(true)
+        viewModel.refreshPosts(
+            onError = {
                 Toast.makeText(requireContext(), "Failed to refresh posts", Toast.LENGTH_SHORT).show()
-            } finally {
+            },
+            onDone = {
                 setLoading(false)
             }
-        }
+        )
     }
 
     private fun setLoading(isLoading: Boolean) {

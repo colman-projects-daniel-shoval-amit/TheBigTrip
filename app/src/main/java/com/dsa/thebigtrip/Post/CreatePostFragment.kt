@@ -24,16 +24,14 @@ import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
-import com.dsa.thebigtrip.data.post.PostRepository
 import com.dsa.thebigtrip.data.user.User
-import com.dsa.thebigtrip.data.user.UserRepository
 import com.dsa.thebigtrip.databinding.FragmentCreatePostBinding
-import com.dsa.thebigtrip.utils.ImageUtil
+import com.dsa.thebigtrip.viewmodel.CreatePostViewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -46,16 +44,13 @@ import com.google.android.libraries.places.api.model.AutocompleteSessionToken
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
-import kotlinx.coroutines.launch
 
 class CreatePostFragment : Fragment() {
 
     private var _binding: FragmentCreatePostBinding? = null
     private val binding get() = _binding!!
     private val args: CreatePostFragmentArgs by navArgs()
-
-    private val repository = PostRepository.shared
-    private val userRepository = UserRepository.shared
+    private val viewModel: CreatePostViewModel by viewModels()
 
     private var selectedImageUri: Uri? = null
     private var currentPost: Post? = null
@@ -105,10 +100,27 @@ class CreatePostFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         initializePlaces()
+        observeViewModel()
         setupListeners()
         loadAllUsers()
         loadPostForEditIfNeeded()
         updatePermissionsSummary()
+    }
+
+    private fun observeViewModel() {
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            setLoading(isLoading)
+        }
+
+        viewModel.allUsers.observe(viewLifecycleOwner) { users ->
+            allUsers = users
+        }
+
+        viewModel.postForEdit.observe(viewLifecycleOwner) { post ->
+            if (post != null) {
+                showPostForEdit(post)
+            }
+        }
     }
 
     private fun setupListeners() {
@@ -490,42 +502,31 @@ class CreatePostFragment : Fragment() {
 
     private fun loadPostForEditIfNeeded() {
         val postId = args.postId ?: return
+        viewModel.loadPostForEdit(postId)
+    }
 
-        setLoading(true)
+    private fun showPostForEdit(post: Post) {
+        currentPost = post
 
-        lifecycleScope.launch {
-            try {
-                val post = repository.getPostById(postId) ?: return@launch
-                currentPost = post
+        binding.createPostMainTitle.text = "Edit Post"
+        binding.publishButton.text = "Save Changes"
+        binding.titleInput.setText(post.caption ?: "")
+        binding.descriptionInput.setText(post.locationName ?: "")
 
-                binding.createPostMainTitle.text = "Edit Post"
-                binding.publishButton.text = "Save Changes"
-                binding.titleInput.setText(post.caption ?: "")
-                binding.descriptionInput.setText(post.locationName ?: "")
-
-                if (post.latitude != null && post.longitude != null) {
-                    selectedLatitude = post.latitude
-                    selectedLongitude = post.longitude
-                    selectedPlaceName = post.locationName ?: "Selected place"
-                    setLocationText(selectedPlaceName.orEmpty())
-                }
-
-                if (!post.imageUrl.isNullOrEmpty()) {
-                    showImagePreview(post.imageUrl)
-                }
-
-                selectedVisibleUserIds.clear()
-                selectedVisibleUserIds.addAll(post.visibleTo)
-                updatePermissionsSummary()
-            } catch (e: Exception) {
-                Snackbar.make(binding.root, "Failed to load post", Snackbar.LENGTH_SHORT)
-                    .setBackgroundTint("#ff4545".toColorInt())
-                    .setTextColor(Color.WHITE)
-                    .show()
-            } finally {
-                setLoading(false)
-            }
+        if (post.latitude != null && post.longitude != null) {
+            selectedLatitude = post.latitude
+            selectedLongitude = post.longitude
+            selectedPlaceName = post.locationName ?: "Selected place"
+            setLocationText(selectedPlaceName.orEmpty())
         }
+
+        if (!post.imageUrl.isNullOrEmpty()) {
+            showImagePreview(post.imageUrl)
+        }
+
+        selectedVisibleUserIds.clear()
+        selectedVisibleUserIds.addAll(post.visibleTo)
+        updatePermissionsSummary()
     }
 
     private fun validateInput(title: String): Boolean {
@@ -563,104 +564,71 @@ class CreatePostFragment : Fragment() {
         title: String,
         description: String
     ) {
-        setLoading(true)
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+            ?: return showError("Please log in before publishing")
+        val lat = selectedLatitude ?: return showError("Location is required")
+        val lng = selectedLongitude ?: return showError("Location is required")
 
-        lifecycleScope.launch {
-            try {
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                    ?: throw IllegalStateException("Please log in before publishing")
-                val lat = selectedLatitude ?: throw IllegalStateException("Location is required")
-                val lng = selectedLongitude ?: throw IllegalStateException("Location is required")
-                val postId = System.currentTimeMillis().toString()
-                val imageUrl = selectedImageUri?.let {
-                    ImageUtil.uploadPostImage(requireContext(), it, postId)
-                        ?: throw IllegalStateException("Failed to upload image")
-                }
-
-                val post = Post(
-                    id = postId,
-                    userId = uid,
-                    caption = title,
-                    imageUrl = imageUrl,
-                    createdAt = System.currentTimeMillis(),
-                    locationName = selectedPlaceName ?: description,
-                    latitude = lat,
-                    longitude = lng,
-                    visibleTo = selectedVisibleUserIds.filter { it != uid }
-                )
-
-                repository.addPost(post)
-
+        viewModel.publishPost(
+            uid = uid,
+            title = title,
+            imageUri = selectedImageUri,
+            locationName = selectedPlaceName ?: description,
+            latitude = lat,
+            longitude = lng,
+            visibleTo = selectedVisibleUserIds.toList(),
+            onSuccess = {
                 Snackbar.make(binding.root, "Post published!", Snackbar.LENGTH_SHORT)
                     .setBackgroundTint("#4CAF50".toColorInt())
                     .setTextColor(Color.WHITE)
                     .show()
 
-                setLoading(false)
                 requireActivity().onBackPressedDispatcher.onBackPressed()
-
-            } catch (e: Exception) {
-                Snackbar.make(binding.root, e.message ?: "Error", Snackbar.LENGTH_SHORT)
-                    .setBackgroundTint("#ff4545".toColorInt())
-                    .setTextColor(Color.WHITE)
-                    .show()
-            } finally {
-                setLoading(false)
+            },
+            onError = { message ->
+                showError(message)
             }
-        }
+        )
     }
 
     private fun updatePost(
         title: String,
         description: String
     ) {
-        setLoading(true)
+        val existingPost = currentPost ?: return
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+            ?: return showError("Please log in before editing")
+        val lat = selectedLatitude ?: return showError("Location is required")
+        val lng = selectedLongitude ?: return showError("Location is required")
 
-        lifecycleScope.launch {
-            try {
-                val existingPost = currentPost ?: return@launch
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                    ?: throw IllegalStateException("Please log in before editing")
-
-                if (existingPost.userId != uid) {
-                    throw IllegalStateException("You can edit only your own posts")
-                }
-
-                val lat = selectedLatitude ?: throw IllegalStateException("Location is required")
-                val lng = selectedLongitude ?: throw IllegalStateException("Location is required")
-                val imageUrl = selectedImageUri?.let {
-                    ImageUtil.uploadPostImage(requireContext(), it, existingPost.id)
-                        ?: throw IllegalStateException("Failed to upload image")
-                } ?: existingPost.imageUrl
-
-                val updatedPost = existingPost.copy(
-                    caption = title,
-                    imageUrl = imageUrl,
-                    locationName = selectedPlaceName ?: description,
-                    latitude = lat,
-                    longitude = lng,
-                    visibleTo = selectedVisibleUserIds.filter { it != existingPost.userId }
-                )
-
-                repository.updatePost(updatedPost)
-
+        viewModel.updatePost(
+            existingPost = existingPost,
+            uid = uid,
+            title = title,
+            imageUri = selectedImageUri,
+            locationName = selectedPlaceName ?: description,
+            latitude = lat,
+            longitude = lng,
+            visibleTo = selectedVisibleUserIds.toList(),
+            onSuccess = {
                 Snackbar.make(binding.root, "Post updated!", Snackbar.LENGTH_SHORT)
                     .setBackgroundTint("#4CAF50".toColorInt())
                     .setTextColor(Color.WHITE)
                     .show()
 
-                setLoading(false)
                 requireActivity().onBackPressedDispatcher.onBackPressed()
-
-            } catch (e: Exception) {
-                Snackbar.make(binding.root, e.message ?: "Error", Snackbar.LENGTH_SHORT)
-                    .setBackgroundTint("#ff4545".toColorInt())
-                    .setTextColor(Color.WHITE)
-                    .show()
-            } finally {
-                setLoading(false)
+            },
+            onError = { message ->
+                showError(message)
             }
-        }
+        )
+    }
+
+    private fun showError(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT)
+            .setBackgroundTint("#ff4545".toColorInt())
+            .setTextColor(Color.WHITE)
+            .show()
     }
 
     private fun showImagePreview(imageUrl: String) {
@@ -696,13 +664,7 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun loadAllUsers() {
-        lifecycleScope.launch {
-            try {
-                allUsers = userRepository.getAllUsers()
-            } catch (e: Exception) {
-                allUsers = emptyList()
-            }
-        }
+        viewModel.loadAllUsers()
     }
 
     private fun showPermissionPicker() {
