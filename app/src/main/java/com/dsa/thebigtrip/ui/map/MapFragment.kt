@@ -43,6 +43,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private lateinit var previewTitle: TextView
     private lateinit var previewDate: TextView
     private lateinit var previewLocation: TextView
+    private lateinit var previewDescription: TextView
+    private lateinit var previewWeather: TextView
     private lateinit var closePreview: TextView
 
     private val viewModel: MapViewModel by viewModels()
@@ -65,6 +67,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         previewTitle = view.findViewById(R.id.previewTitle)
         previewDate = view.findViewById(R.id.previewDate)
         previewLocation = view.findViewById(R.id.previewLocation)
+        previewDescription = view.findViewById(R.id.previewDescription)
+        previewWeather = view.findViewById(R.id.previewWeather)
         closePreview = view.findViewById(R.id.closePreview)
 
         closePreview.setOnClickListener {
@@ -262,7 +266,30 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private fun showPostPreview(post: Post) {
         previewTitle.text = post.caption ?: ""
         previewDate.text = formatPostDate(post.createdAt)
-        previewLocation.text = post.locationName ?: ""
+
+        val locationText = post.locationName.orEmpty()
+        if (locationText.isNotBlank()) {
+            previewLocation.text = "📍 $locationText"
+            previewLocation.visibility = View.VISIBLE
+        } else {
+            previewLocation.visibility = View.GONE
+        }
+
+        val descText = post.description.orEmpty()
+        if (descText.isNotBlank()) {
+            previewDescription.text = descText
+            previewDescription.visibility = View.VISIBLE
+        } else {
+            previewDescription.visibility = View.GONE
+        }
+
+        val weatherText = post.weather.orEmpty()
+        if (weatherText.isNotBlank()) {
+            previewWeather.text = weatherText
+            previewWeather.visibility = View.VISIBLE
+        } else {
+            previewWeather.visibility = View.GONE
+        }
 
         if (!post.imageUrl.isNullOrEmpty()) {
             Picasso.get()
