@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
+import android.location.Geocoder
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -25,7 +26,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.bumptech.glide.Glide
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
@@ -184,6 +189,10 @@ class CreatePostFragment : Fragment() {
             showPermissionPicker()
         }
 
+        binding.cancelButton.setOnClickListener {
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
+
         binding.titleInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
                 hideLocationSuggestions()
@@ -233,11 +242,22 @@ class CreatePostFragment : Fragment() {
 
         selectedLatitude = latLng.latitude
         selectedLongitude = latLng.longitude
-        selectedPlaceName = place.name ?: place.address ?: "Selected place"
-        setLocationText(selectedPlaceName.orEmpty())
         binding.locationInput.error = null
         hideLocationSuggestions()
         autocompleteSessionToken = null
+
+        // Show a fallback immediately, then geocode for a clean city/country/street label
+        val fallback = place.address ?: place.name ?: "Selected place"
+        selectedPlaceName = fallback
+        setLocationText(fallback)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val geocoded = formatLocationFromCoords(latLng.latitude, latLng.longitude)
+            if (!geocoded.isNullOrBlank()) {
+                selectedPlaceName = geocoded
+                setLocationText(geocoded)
+            }
+        }
     }
 
     private fun searchPlaces(query: String) {
@@ -494,10 +514,42 @@ class CreatePostFragment : Fragment() {
         val currentBinding = _binding ?: return
         selectedLatitude = latitude
         selectedLongitude = longitude
-        selectedPlaceName = "Current location"
-        setLocationText(selectedPlaceName.orEmpty())
+        setLocationText("Getting location…")
         currentBinding.locationInput.error = null
         hideLocationSuggestions()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val name = formatLocationFromCoords(latitude, longitude) ?: "Unknown location"
+            selectedPlaceName = name
+            setLocationText(name)
+        }
+    }
+
+    private suspend fun formatLocationFromCoords(lat: Double, lng: Double): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val geocoder = Geocoder(requireContext())
+                @Suppress("DEPRECATION")
+                val results = geocoder.getFromLocation(lat, lng, 1)
+                if (results.isNullOrEmpty()) return@withContext null
+
+                val addr = results[0]
+                buildString {
+                    val street = addr.thoroughfare
+                    val number = addr.subThoroughfare
+                    if (street != null) {
+                        if (number != null) append("$street $number, ")
+                        else append("$street, ")
+                    }
+                    val city = addr.locality ?: addr.subAdminArea ?: addr.adminArea
+                    if (city != null) append("$city, ")
+                    val country = addr.countryName
+                    if (country != null) append(country)
+                }.trimEnd(',', ' ').ifBlank { null }
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 
     private fun loadPostForEditIfNeeded() {

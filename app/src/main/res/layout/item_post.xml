@@ -109,16 +109,6 @@
                 android:textColor="#888888"
                 android:textSize="12sp" />
 
-            <!-- Description -->
-            <TextView
-                android:id="@+id/postDescription"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:lineSpacingExtra="2dp"
-                android:textColor="#444444"
-                android:textSize="14sp" />
-
             <!-- Weather -->
             <TextView
                 android:id="@+id/postWeather"
@@ -128,6 +118,16 @@
                 android:textColor="#2E7D32"
                 android:textSize="13sp"
                 android:textStyle="bold" />
+
+            <!-- Description -->
+            <TextView
+                android:id="@+id/postDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingExtra="2dp"
+                android:textColor="#444444"
+                android:textSize="14sp" />
 
         </LinearLayout>
     </LinearLayout>
