@@ -1,9 +1,10 @@
-package com.dsa.thebigtrip
+package com.dsa.thebigtrip.ui.main
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
+import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {

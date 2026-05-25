@@ -61,8 +61,28 @@
                 android:id="@+id/previewLocation"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="#888888"/>
+
+            <TextView
+                android:id="@+id/previewWeather"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="13sp"
+                android:textColor="#2E7D32"
+                android:textStyle="bold"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/previewDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingExtra="2dp"
                 android:textSize="14sp"
-                android:textColor="#666"/>
+                android:textColor="#444444"
+                android:visibility="gone"/>
 
             <TextView
                 android:id="@+id/closePreview"

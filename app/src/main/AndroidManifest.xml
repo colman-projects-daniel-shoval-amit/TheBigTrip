@@ -37,7 +37,7 @@
             android:value="${MAPS_API_KEY}" />
 
         <activity
-            android:name=".Auth.AuthActivity"
+            android:name=".ui.auth.AuthActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -46,7 +46,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.main.MainActivity"
             android:exported="false"/>
     </application>
 

@@ -31,19 +31,21 @@
             android:paddingTop="12dp"
             android:paddingBottom="14dp">
 
+            <!-- Title (caption) — bold, prominent -->
             <TextView
-                android:id="@+id/postLocation"
+                android:id="@+id/postCaption"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@android:color/black"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
+            <!-- Actions row -->
             <LinearLayout
                 android:id="@+id/postActions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:gravity="end"
                 android:orientation="horizontal">
 
@@ -78,6 +80,7 @@
 
             </LinearLayout>
 
+            <!-- Uploader -->
             <TextView
                 android:id="@+id/postUploader"
                 android:layout_width="match_parent"
@@ -87,6 +90,7 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
+            <!-- Published date -->
             <TextView
                 android:id="@+id/postDate"
                 android:layout_width="match_parent"
@@ -95,14 +99,35 @@
                 android:textColor="#777777"
                 android:textSize="12sp" />
 
+            <!-- Location — small, below date -->
             <TextView
-                android:id="@+id/postCaption"
+                android:id="@+id/postLocation"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="3dp"
+                android:drawablePadding="4dp"
+                android:textColor="#888888"
+                android:textSize="12sp" />
+
+            <!-- Weather -->
+            <TextView
+                android:id="@+id/postWeather"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:textColor="#2E7D32"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!-- Description -->
+            <TextView
+                android:id="@+id/postDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 android:lineSpacingExtra="2dp"
-                android:textColor="#333333"
-                android:textSize="15sp" />
+                android:textColor="#444444"
+                android:textSize="14sp" />
 
         </LinearLayout>
     </LinearLayout>

@@ -1,10 +1,11 @@
-package com.dsa.thebigtrip.Post
+package com.dsa.thebigtrip.ui.posts
 
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
+import android.location.Geocoder
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -24,15 +25,18 @@ import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.navArgs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.bumptech.glide.Glide
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
-import com.dsa.thebigtrip.data.post.PostRepository
 import com.dsa.thebigtrip.data.user.User
-import com.dsa.thebigtrip.data.user.UserRepository
 import com.dsa.thebigtrip.databinding.FragmentCreatePostBinding
-import com.dsa.thebigtrip.utils.ImageUtil
+import com.dsa.thebigtrip.ui.viewmodel.CreatePostViewModel
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -45,15 +49,13 @@ import com.google.android.libraries.places.api.model.AutocompleteSessionToken
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
-import kotlinx.coroutines.launch
 
 class CreatePostFragment : Fragment() {
 
     private var _binding: FragmentCreatePostBinding? = null
     private val binding get() = _binding!!
-
-    private val repository = PostRepository.shared
-    private val userRepository = UserRepository.shared
+    private val args: CreatePostFragmentArgs by navArgs()
+    private val viewModel: CreatePostViewModel by viewModels()
 
     private var selectedImageUri: Uri? = null
     private var currentPost: Post? = null
@@ -103,10 +105,27 @@ class CreatePostFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         initializePlaces()
+        observeViewModel()
         setupListeners()
         loadAllUsers()
         loadPostForEditIfNeeded()
         updatePermissionsSummary()
+    }
+
+    private fun observeViewModel() {
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            setLoading(isLoading)
+        }
+
+        viewModel.allUsers.observe(viewLifecycleOwner) { users ->
+            allUsers = users
+        }
+
+        viewModel.postForEdit.observe(viewLifecycleOwner) { post ->
+            if (post != null) {
+                showPostForEdit(post)
+            }
+        }
     }
 
     private fun setupListeners() {
@@ -170,6 +189,10 @@ class CreatePostFragment : Fragment() {
             showPermissionPicker()
         }
 
+        binding.cancelButton.setOnClickListener {
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
+
         binding.titleInput.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
                 hideLocationSuggestions()
@@ -219,11 +242,22 @@ class CreatePostFragment : Fragment() {
 
         selectedLatitude = latLng.latitude
         selectedLongitude = latLng.longitude
-        selectedPlaceName = place.name ?: place.address ?: "Selected place"
-        setLocationText(selectedPlaceName.orEmpty())
         binding.locationInput.error = null
         hideLocationSuggestions()
         autocompleteSessionToken = null
+
+        // Show a fallback immediately, then geocode for a clean city/country/street label
+        val fallback = place.address ?: place.name ?: "Selected place"
+        selectedPlaceName = fallback
+        setLocationText(fallback)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val geocoded = formatLocationFromCoords(latLng.latitude, latLng.longitude)
+            if (!geocoded.isNullOrBlank()) {
+                selectedPlaceName = geocoded
+                setLocationText(geocoded)
+            }
+        }
     }
 
     private fun searchPlaces(query: String) {
@@ -480,50 +514,71 @@ class CreatePostFragment : Fragment() {
         val currentBinding = _binding ?: return
         selectedLatitude = latitude
         selectedLongitude = longitude
-        selectedPlaceName = "Current location"
-        setLocationText(selectedPlaceName.orEmpty())
+        setLocationText("Getting location…")
         currentBinding.locationInput.error = null
         hideLocationSuggestions()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val name = formatLocationFromCoords(latitude, longitude) ?: "Unknown location"
+            selectedPlaceName = name
+            setLocationText(name)
+        }
+    }
+
+    private suspend fun formatLocationFromCoords(lat: Double, lng: Double): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val geocoder = Geocoder(requireContext())
+                @Suppress("DEPRECATION")
+                val results = geocoder.getFromLocation(lat, lng, 1)
+                if (results.isNullOrEmpty()) return@withContext null
+
+                val addr = results[0]
+                buildString {
+                    val street = addr.thoroughfare
+                    val number = addr.subThoroughfare
+                    if (street != null) {
+                        if (number != null) append("$street $number, ")
+                        else append("$street, ")
+                    }
+                    val city = addr.locality ?: addr.subAdminArea ?: addr.adminArea
+                    if (city != null) append("$city, ")
+                    val country = addr.countryName
+                    if (country != null) append(country)
+                }.trimEnd(',', ' ').ifBlank { null }
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 
     private fun loadPostForEditIfNeeded() {
-        val postId = arguments?.getString("postId") ?: return
+        val postId = args.postId ?: return
+        viewModel.loadPostForEdit(postId)
+    }
 
-        setLoading(true)
+    private fun showPostForEdit(post: Post) {
+        currentPost = post
 
-        lifecycleScope.launch {
-            try {
-                val post = repository.getPostById(postId) ?: return@launch
-                currentPost = post
+        binding.createPostMainTitle.text = "Edit Post"
+        binding.publishButton.text = "Save Changes"
+        binding.titleInput.setText(post.caption ?: "")
+        binding.descriptionInput.setText(post.description ?: "")
 
-                binding.createPostMainTitle.text = "Edit Post"
-                binding.publishButton.text = "Save Changes"
-                binding.titleInput.setText(post.caption ?: "")
-                binding.descriptionInput.setText(post.locationName ?: "")
-
-                if (post.latitude != null && post.longitude != null) {
-                    selectedLatitude = post.latitude
-                    selectedLongitude = post.longitude
-                    selectedPlaceName = post.locationName ?: "Selected place"
-                    setLocationText(selectedPlaceName.orEmpty())
-                }
-
-                if (!post.imageUrl.isNullOrEmpty()) {
-                    showImagePreview(post.imageUrl)
-                }
-
-                selectedVisibleUserIds.clear()
-                selectedVisibleUserIds.addAll(post.visibleTo)
-                updatePermissionsSummary()
-            } catch (e: Exception) {
-                Snackbar.make(binding.root, "Failed to load post", Snackbar.LENGTH_SHORT)
-                    .setBackgroundTint("#ff4545".toColorInt())
-                    .setTextColor(Color.WHITE)
-                    .show()
-            } finally {
-                setLoading(false)
-            }
+        if (post.latitude != null && post.longitude != null) {
+            selectedLatitude = post.latitude
+            selectedLongitude = post.longitude
+            selectedPlaceName = post.locationName ?: "Selected place"
+            setLocationText(selectedPlaceName.orEmpty())
         }
+
+        if (!post.imageUrl.isNullOrEmpty()) {
+            showImagePreview(post.imageUrl)
+        }
+
+        selectedVisibleUserIds.clear()
+        selectedVisibleUserIds.addAll(post.visibleTo)
+        updatePermissionsSummary()
     }
 
     private fun validateInput(title: String): Boolean {
@@ -561,104 +616,73 @@ class CreatePostFragment : Fragment() {
         title: String,
         description: String
     ) {
-        setLoading(true)
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+            ?: return showError("Please log in before publishing")
+        val lat = selectedLatitude ?: return showError("Location is required")
+        val lng = selectedLongitude ?: return showError("Location is required")
 
-        lifecycleScope.launch {
-            try {
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                    ?: throw IllegalStateException("Please log in before publishing")
-                val lat = selectedLatitude ?: throw IllegalStateException("Location is required")
-                val lng = selectedLongitude ?: throw IllegalStateException("Location is required")
-                val postId = System.currentTimeMillis().toString()
-                val imageUrl = selectedImageUri?.let {
-                    ImageUtil.uploadPostImage(requireContext(), it, postId)
-                        ?: throw IllegalStateException("Failed to upload image")
-                }
-
-                val post = Post(
-                    id = postId,
-                    userId = uid,
-                    caption = title,
-                    imageUrl = imageUrl,
-                    createdAt = System.currentTimeMillis(),
-                    locationName = selectedPlaceName ?: description,
-                    latitude = lat,
-                    longitude = lng,
-                    visibleTo = selectedVisibleUserIds.filter { it != uid }
-                )
-
-                repository.addPost(post)
-
+        viewModel.publishPost(
+            uid = uid,
+            title = title,
+            description = description,
+            imageUri = selectedImageUri,
+            locationName = selectedPlaceName.orEmpty(),
+            latitude = lat,
+            longitude = lng,
+            visibleTo = selectedVisibleUserIds.toList(),
+            onSuccess = {
                 Snackbar.make(binding.root, "Post published!", Snackbar.LENGTH_SHORT)
                     .setBackgroundTint("#4CAF50".toColorInt())
                     .setTextColor(Color.WHITE)
                     .show()
 
-                setLoading(false)
                 requireActivity().onBackPressedDispatcher.onBackPressed()
-
-            } catch (e: Exception) {
-                Snackbar.make(binding.root, e.message ?: "Error", Snackbar.LENGTH_SHORT)
-                    .setBackgroundTint("#ff4545".toColorInt())
-                    .setTextColor(Color.WHITE)
-                    .show()
-            } finally {
-                setLoading(false)
+            },
+            onError = { message ->
+                showError(message)
             }
-        }
+        )
     }
 
     private fun updatePost(
         title: String,
         description: String
     ) {
-        setLoading(true)
+        val existingPost = currentPost ?: return
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+            ?: return showError("Please log in before editing")
+        val lat = selectedLatitude ?: return showError("Location is required")
+        val lng = selectedLongitude ?: return showError("Location is required")
 
-        lifecycleScope.launch {
-            try {
-                val existingPost = currentPost ?: return@launch
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                    ?: throw IllegalStateException("Please log in before editing")
-
-                if (existingPost.userId != uid) {
-                    throw IllegalStateException("You can edit only your own posts")
-                }
-
-                val lat = selectedLatitude ?: throw IllegalStateException("Location is required")
-                val lng = selectedLongitude ?: throw IllegalStateException("Location is required")
-                val imageUrl = selectedImageUri?.let {
-                    ImageUtil.uploadPostImage(requireContext(), it, existingPost.id)
-                        ?: throw IllegalStateException("Failed to upload image")
-                } ?: existingPost.imageUrl
-
-                val updatedPost = existingPost.copy(
-                    caption = title,
-                    imageUrl = imageUrl,
-                    locationName = selectedPlaceName ?: description,
-                    latitude = lat,
-                    longitude = lng,
-                    visibleTo = selectedVisibleUserIds.filter { it != existingPost.userId }
-                )
-
-                repository.updatePost(updatedPost)
-
+        viewModel.updatePost(
+            existingPost = existingPost,
+            uid = uid,
+            title = title,
+            description = description,
+            imageUri = selectedImageUri,
+            locationName = selectedPlaceName.orEmpty(),
+            latitude = lat,
+            longitude = lng,
+            visibleTo = selectedVisibleUserIds.toList(),
+            onSuccess = {
                 Snackbar.make(binding.root, "Post updated!", Snackbar.LENGTH_SHORT)
                     .setBackgroundTint("#4CAF50".toColorInt())
                     .setTextColor(Color.WHITE)
                     .show()
 
-                setLoading(false)
                 requireActivity().onBackPressedDispatcher.onBackPressed()
-
-            } catch (e: Exception) {
-                Snackbar.make(binding.root, e.message ?: "Error", Snackbar.LENGTH_SHORT)
-                    .setBackgroundTint("#ff4545".toColorInt())
-                    .setTextColor(Color.WHITE)
-                    .show()
-            } finally {
-                setLoading(false)
+            },
+            onError = { message ->
+                showError(message)
             }
-        }
+        )
+    }
+
+    private fun showError(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT)
+            .setBackgroundTint("#ff4545".toColorInt())
+            .setTextColor(Color.WHITE)
+            .show()
     }
 
     private fun showImagePreview(imageUrl: String) {
@@ -694,13 +718,7 @@ class CreatePostFragment : Fragment() {
     }
 
     private fun loadAllUsers() {
-        lifecycleScope.launch {
-            try {
-                allUsers = userRepository.getAllUsers()
-            } catch (e: Exception) {
-                allUsers = emptyList()
-            }
-        }
+        viewModel.loadAllUsers()
     }
 
     private fun showPermissionPicker() {

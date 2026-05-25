@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 import com.dsa.thebigtrip.data.post.PostDao
 import com.dsa.thebigtrip.data.user.UserDao
 
-@Database(entities = [User::class, Post::class], version = 8)
+@Database(entities = [User::class, Post::class], version = 9)
 @TypeConverters(StringListConverter::class)
 abstract class AppLocalDbRepository : RoomDatabase() {
     abstract fun userDao(): UserDao?

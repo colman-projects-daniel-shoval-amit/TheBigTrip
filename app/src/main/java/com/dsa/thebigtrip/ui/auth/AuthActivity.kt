@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.Auth
+package com.dsa.thebigtrip.ui.auth
 
 import android.content.Intent
 import android.os.Bundle
@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.dsa.thebigtrip.MainActivity
+import com.dsa.thebigtrip.ui.main.MainActivity
 import com.dsa.thebigtrip.R
 import  com.dsa.thebigtrip.databinding.ActivityAuthBinding
 import com.google.firebase.auth.FirebaseAuth

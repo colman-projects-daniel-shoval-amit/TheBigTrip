@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip
+package com.dsa.thebigtrip.ui.map
 
 import android.Manifest
 import android.app.AlertDialog
@@ -16,9 +16,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.viewModels
+import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.post.Post
-import com.dsa.thebigtrip.data.post.PostRepository
+import com.dsa.thebigtrip.ui.viewmodel.MapViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -28,7 +29,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
 import com.squareup.picasso.Picasso
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,9 +43,11 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private lateinit var previewTitle: TextView
     private lateinit var previewDate: TextView
     private lateinit var previewLocation: TextView
+    private lateinit var previewDescription: TextView
+    private lateinit var previewWeather: TextView
     private lateinit var closePreview: TextView
 
-    private val repository = PostRepository.shared
+    private val viewModel: MapViewModel by viewModels()
     private var cachedPosts: List<Post> = emptyList()
     private var markerPositions: List<LatLng> = emptyList()
     private var isMapLoaded = false
@@ -65,6 +67,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
         previewTitle = view.findViewById(R.id.previewTitle)
         previewDate = view.findViewById(R.id.previewDate)
         previewLocation = view.findViewById(R.id.previewLocation)
+        previewDescription = view.findViewById(R.id.previewDescription)
+        previewWeather = view.findViewById(R.id.previewWeather)
         closePreview = view.findViewById(R.id.closePreview)
 
         closePreview.setOnClickListener {
@@ -107,7 +111,7 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun observePostsAndAddMarkers() {
-        repository.getAllPosts().observe(viewLifecycleOwner) { posts ->
+        viewModel.posts.observe(viewLifecycleOwner) { posts ->
 
             val currentUid = FirebaseAuth.getInstance().currentUser?.uid
             val visiblePosts = if (currentUid == null) {
@@ -262,7 +266,30 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     private fun showPostPreview(post: Post) {
         previewTitle.text = post.caption ?: ""
         previewDate.text = formatPostDate(post.createdAt)
-        previewLocation.text = post.locationName ?: ""
+
+        val locationText = post.locationName.orEmpty()
+        if (locationText.isNotBlank()) {
+            previewLocation.text = "📍 $locationText"
+            previewLocation.visibility = View.VISIBLE
+        } else {
+            previewLocation.visibility = View.GONE
+        }
+
+        val descText = post.description.orEmpty()
+        if (descText.isNotBlank()) {
+            previewDescription.text = descText
+            previewDescription.visibility = View.VISIBLE
+        } else {
+            previewDescription.visibility = View.GONE
+        }
+
+        val weatherText = post.weather.orEmpty()
+        if (weatherText.isNotBlank()) {
+            previewWeather.text = weatherText
+            previewWeather.visibility = View.VISIBLE
+        } else {
+            previewWeather.visibility = View.GONE
+        }
 
         if (!post.imageUrl.isNullOrEmpty()) {
             Picasso.get()
@@ -314,12 +341,8 @@ class MapFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun refreshPosts() {
-        lifecycleScope.launch {
-            try {
-                repository.refreshPosts()
-            } catch (e: Exception) {
+        viewModel.refreshPosts {
                 Toast.makeText(requireContext(), "Failed to refresh map posts", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 

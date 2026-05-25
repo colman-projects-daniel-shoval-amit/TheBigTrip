@@ -1,4 +1,4 @@
-package com.dsa.thebigtrip.fragments
+package com.dsa.thebigtrip.ui.profile
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,16 +10,15 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
-import com.dsa.thebigtrip.Auth.AuthActivity
+import androidx.fragment.app.viewModels
+import com.dsa.thebigtrip.ui.auth.AuthActivity
 import com.dsa.thebigtrip.R
 import com.dsa.thebigtrip.data.user.User
-import com.dsa.thebigtrip.data.user.UserRepository
 import com.dsa.thebigtrip.databinding.FragmentProfileBinding
 import com.dsa.thebigtrip.utils.ImageUtil
 import com.dsa.thebigtrip.utils.bitmap
+import com.dsa.thebigtrip.ui.viewmodel.ProfileViewModel
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.launch
 
 class ProfileFragment : Fragment() {
 
@@ -31,6 +30,7 @@ class ProfileFragment : Fragment() {
     private var currentUser: User? = null
 
     private lateinit var auth: FirebaseAuth
+    private val viewModel: ProfileViewModel by viewModels()
 
     private lateinit var pickImageLauncher: ActivityResultLauncher<PickVisualMediaRequest>
 
@@ -58,15 +58,13 @@ class ProfileFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        observeViewModel()
         loadUserData()
         setupListeners()
     }
 
-    private fun loadUserData() {
-        val uid = auth.currentUser?.uid ?: return
-
-        lifecycleScope.launch {
-            val user = UserRepository.Companion.shared.getUserById(uid)
+    private fun observeViewModel() {
+        viewModel.user.observe(viewLifecycleOwner) { user ->
             currentUser = user
 
             if (user != null) {
@@ -74,7 +72,6 @@ class ProfileFragment : Fragment() {
                 binding.tvUserName.text = user.fullName ?: "Not set"
                 binding.tvUserEmail.text = user.email ?: "Not set"
 
-                // Load profile image
                 ImageUtil.loadCircleImage(
                     binding.ivProfileImage,
                     user.imageUri,
@@ -82,6 +79,25 @@ class ProfileFragment : Fragment() {
                 )
             }
         }
+
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            setLoading(isLoading)
+        }
+
+        viewModel.message.observe(viewLifecycleOwner) { message ->
+            if (message != null) {
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                if (message == "Profile updated!") {
+                    exitEditMode()
+                }
+                viewModel.clearMessage()
+            }
+        }
+    }
+
+    private fun loadUserData() {
+        val uid = auth.currentUser?.uid ?: return
+        viewModel.loadUser(uid)
     }
 
     private fun setupListeners() {
@@ -145,46 +161,15 @@ class ProfileFragment : Fragment() {
         }
 
         val uid = auth.currentUser?.uid ?: return
-        setLoading(true)
+        val selectedImage = if (imageSelected) binding.ivProfileImage.bitmap else null
 
-        lifecycleScope.launch {
-            try {
-                var imageUrl = currentUser?.imageUri
-
-                // Upload new image if selected
-                if (imageSelected) {
-                    val bitmap = binding.ivProfileImage.bitmap
-                    if (bitmap != null) {
-                        val uploadedUrl = ImageUtil.uploadUserProfileImage(bitmap, uid)
-                        if (uploadedUrl != null) {
-                            imageUrl = uploadedUrl
-                        }
-                    }
-                }
-
-                val updatedUser = User(
-                    uid = uid,
-                    fullName = name,
-                    email = currentUser?.email ?: auth.currentUser?.email,
-                    imageUri = imageUrl,
-                )
-
-                UserRepository.Companion.shared.updateUser(updatedUser)
-                currentUser = updatedUser
-
-                // Update UI
-                binding.tvWelcome.text = "Welcome, $name!"
-                binding.tvUserName.text = name
-
-                Toast.makeText(requireContext(), "Profile updated!", Toast.LENGTH_SHORT).show()
-                exitEditMode()
-
-            } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Failed to save: ${e.message}", Toast.LENGTH_LONG).show()
-            } finally {
-                setLoading(false)
-            }
-        }
+        viewModel.updateProfile(
+            uid = uid,
+            name = name,
+            email = currentUser?.email ?: auth.currentUser?.email,
+            currentImageUrl = currentUser?.imageUri,
+            selectedImage = selectedImage
+        )
     }
 
     private fun setLoading(isLoading: Boolean) {
